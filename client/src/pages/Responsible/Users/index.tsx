@@ -31,6 +31,7 @@ import {
   X,
   Check,
   ChevronDown,
+  Download,
   RotateCw,
 } from "lucide-react";
 import {
@@ -63,6 +64,57 @@ export function UsersSection() {
   });
 
   const handleActionComplete = () => refetch();
+
+  // Export users (attempt to use SheetJS 'xlsx' if available, fallback to CSV)
+  const handleExport = async () => {
+    if (!filteredUsers || filteredUsers.length === 0) return;
+
+    const exportData = filteredUsers.map((u: User) => ({
+      Nom: `${u.firstName} ${u.lastName}`,
+      Email: u.userEmail,
+      Telephone: u.userPhone ?? "",
+      Role: u.role ?? "",
+      Status: u.status ?? "",
+      Matricule: u.matricule ?? "",
+    }));
+
+    try {
+      // dynamic import using a variable to avoid TypeScript static resolution when dependency is not installed
+  const pkgName = "xlsx";
+  // Tell Vite/Rollup to ignore static analysis for this dynamic optional import
+  // so the dev build does not warn when the package is not installed.
+  // See: https://github.com/rollup/plugins/tree/master/packages/dynamic-import-vars#limitations
+  // @vite-ignore
+  const XLSX = await import(/* @vite-ignore */ (pkgName as any));
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Utilisateurs");
+      XLSX.writeFile(
+        wb,
+        `utilisateurs_${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+    } catch (err) {
+      // Fallback to CSV if xlsx is not installed
+      const headers = Object.keys(exportData[0] || {});
+      const csvRows = [headers.join(",")];
+      for (const row of exportData) {
+        csvRows.push(
+          headers
+            .map((h) => `"${String(row[h] ?? "").replace(/"/g, '""')}"`)
+            .join(",")
+        );
+      }
+      const blob = new Blob([csvRows.join("\n")], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `utilisateurs_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
 
   // Apply filters and search
   const filteredUsers = users.filter((user: User) => {
@@ -187,13 +239,24 @@ export function UsersSection() {
                   </div>
                 </div>
 
-                <Button
-                  onClick={() => navigate("/responsable/users/add")}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-full"
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Ajouter un Utilisateur
-                </Button>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => navigate("/responsable/users/add")}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-full flex items-center"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Ajouter un Utilisateur
+                  </Button>
+                  <Button
+                    onClick={handleExport}
+                    disabled={filteredUsers.length === 0}
+                    variant="outline"
+                    className="px-4 py-2.5 border border-input rounded-full flex items-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Exporter (.xlsx)
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
