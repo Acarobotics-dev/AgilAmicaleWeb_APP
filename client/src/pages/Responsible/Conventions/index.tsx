@@ -9,26 +9,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+// Dialog removed: using dedicated page for add/edit
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConventionTableRow } from "./ConventionTableRow";
-import { AddEditConventionForm } from "./AddEditConventionForm";
 import { PaginationComponent } from "@/components/common/paginationComponent";
-import { getAllConventions, AddConventionService, UpdateConventionService } from "@/services";
+import { getAllConventions } from "@/services";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import { toast } from "sonner";
 import { Convention } from "./types";
-import { Search, File, FilePlus, X, ChevronDown, FileText, CheckCircle, Clock, Download } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Search, File, FilePlus, X, FileText, CheckCircle, Clock, Download, Loader2 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -105,8 +98,8 @@ function ConventionsListSkeleton() {
 
 export function ConventionsSection() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [open, setOpen] = useState(false);
-  const [initialData, setInitialData] = useState<Convention | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredConventions, setFilteredConventions] = useState<Convention[]>([]);
 
@@ -114,6 +107,7 @@ export function ConventionsSection() {
   const {
     data: { data: conventions = [] } = {},
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useQuery({
@@ -134,10 +128,19 @@ export function ConventionsSection() {
   }, [conventions, searchQuery]);
 
   const handleActionComplete = () => refetch();
-  const handleOpenDialog = () => {
-    setInitialData(null);
-    setOpen(true);
+  const handleOpenPage = () => {
+    navigate("/responsable/conventions/add");
   };
+
+  // If navigated back from add/edit page with refresh flag, refetch list
+  useEffect(() => {
+    if ((location.state as any)?.refresh) {
+      refetch();
+      // clear state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   const totalPages = Math.ceil((filteredConventions.length || 0) / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -146,22 +149,7 @@ export function ConventionsSection() {
     startIndex + ITEMS_PER_PAGE
   );
 
-  const handleFormSubmit = async (formData: FormData) => {
-    try {
-      if (initialData?._id) {
-        await UpdateConventionService(initialData?._id, formData);
-        toast.success("Convention mise à jour avec succès!");
-      } else {
-        await AddConventionService(formData);
-        toast.success("Convention ajoutée avec succès!");
-      }
-      setOpen(false);
-      refetch();
-    } catch (err) {
-      console.error("Failed to save convention:", err);
-      toast.error("Échec de l'enregistrement de la convention");
-    }
-  };
+
 
   // Calculate stats
   const stats = {
@@ -222,6 +210,11 @@ export function ConventionsSection() {
                       <h1 className="text-2xl font-bold text-gray-900">
                         Gestion des Conventions
                       </h1>
+                      {isFetching && (
+                        <span className="ml-2 inline-flex items-center text-sm text-gray-500">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-3 text-sm text-gray-500">
                       <div className="flex items-center gap-2">
@@ -236,9 +229,9 @@ export function ConventionsSection() {
                   </div>
                 </div>
 
-                <Button
+                      <Button
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-full"
-                  onClick={handleOpenDialog}
+                        onClick={handleOpenPage}
                 >
                   <FilePlus className="w-4 h-4 mr-2" />
                   Ajouter une Convention
@@ -399,10 +392,7 @@ export function ConventionsSection() {
                         key={convention._id}
                         convention={convention}
                         onActionComplete={handleActionComplete}
-                        onEdit={() => {
-                          setInitialData(convention);
-                          setOpen(true);
-                        }}
+                        onEdit={() => navigate(`/responsable/conventions/edit/${convention._id}`, { state: { initialData: convention } })}
                       />
                     ))
                   ) : (
@@ -460,10 +450,7 @@ export function ConventionsSection() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setInitialData(convention);
-                          setOpen(true);
-                        }}
+                        onClick={() => navigate(`/responsable/conventions/edit/${convention._id}`, { state: { initialData: convention } })}
                         className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-colors"
                       >
                         Modifier
@@ -502,27 +489,7 @@ export function ConventionsSection() {
             </div>
           )}
 
-          {/* Add/Edit Dialog */}
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="sm:max-w-md w-full p-6 rounded-lg shadow-lg bg-white text-gray-900 border-gray-200">
-              <DialogHeader className="mb-4">
-                <DialogTitle className="text-lg font-semibold">
-                  {initialData ? "Modifier la Convention" : "Ajouter Une Nouvelle Convention"}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-gray-500">
-                  {initialData
-                    ? "Modifiez les détails ci-dessous."
-                    : "Remplissez les détails ci-dessous pour ajouter une nouvelle convention."}
-                </DialogDescription>
-              </DialogHeader>
-              <ScrollArea className="max-h-[70vh] pr-4">
-                <AddEditConventionForm
-                  onSubmit={handleFormSubmit}
-                  initialData={initialData}
-                />
-              </ScrollArea>
-            </DialogContent>
-          </Dialog>
+          {/* Add/Edit now handled on separate page */}
         </main>
       </div>
     </SidebarProvider>

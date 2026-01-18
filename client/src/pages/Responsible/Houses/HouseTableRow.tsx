@@ -12,7 +12,8 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  Eye
+  Eye,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -39,12 +40,14 @@ export function HouseTableRow({
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleViewDetails = () => {
     navigate(`view/${house._id}`);
   };
 
   const handleDelete = async () => {
+    setIsDeleting(true);
     try {
       await DeleteHouseService(house._id);
       toast.success("Maison supprimée avec succès !");
@@ -53,6 +56,7 @@ export function HouseTableRow({
       console.error("Échec de la suppression de la maison :", err);
       toast.error("Échec de la suppression");
     } finally {
+      setIsDeleting(false);
       setIsDeleteDialogOpen(false);
     }
   };
@@ -149,13 +153,24 @@ export function HouseTableRow({
               </DropdownMenuItem>
 
               <DropdownMenuItem
-                onClick={() => setIsDeleteDialogOpen(true)}
+                onClick={() => !isDeleting && setIsDeleteDialogOpen(true)}
                 className="cursor-pointer hover:bg-red-50 flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200"
               >
-                <div className="p-1 bg-red-100 rounded-lg">
-                  <Trash2 className="h-4 w-4 text-red-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-900">Supprimer</span>
+                {isDeleting ? (
+                  <>
+                    <div className="p-1 bg-red-100 rounded-lg">
+                      <Loader2 className="h-4 w-4 text-red-600 animate-spin" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">Suppression...</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-1 bg-red-100 rounded-lg">
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">Supprimer</span>
+                  </>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -206,6 +221,7 @@ export function HouseTableRow({
                 variant="outline"
                 onClick={() => setIsDeleteDialogOpen(false)}
                 className="sm:order-1 border-input hover:bg-gray-100 hover:border-gray-200 rounded-xl px-6 py-2.5"
+                disabled={isDeleting}
               >
                 Annuler
               </Button>
@@ -213,9 +229,19 @@ export function HouseTableRow({
                 variant="destructive"
                 onClick={handleDelete}
                 className="sm:order-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                disabled={isDeleting}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer définitivement
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Suppression...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Supprimer définitivement
+                  </>
+                )}
               </Button>
             </div>
           </div>

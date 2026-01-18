@@ -15,6 +15,7 @@ import Profile from "./pages/Adherant/Profile";
 import WaitingConfirmation from "./pages/Confirmation/waitConfirmation";
 import ConfirmationDenied from "./pages/Confirmation/confirmationDenied";
 import { ConventionsSection } from "./pages/Responsible/Conventions";
+import AddEditConventionPage from "./pages/Responsible/Conventions/AddEditConventionPage";
 import { HouseSection } from "./pages/Responsible/Houses";
 import { AddEditHousePage } from "./pages/Responsible/Houses/AddEditHousePage";
 import { UsersSection } from "./pages/Responsible/Users";
@@ -231,6 +232,26 @@ const App = () => {
       element: (
         <ProtectedRoute
           element={<ConventionsSection />}
+          authenticated={auth?.authenticate}
+          user={auth?.user}
+        />
+      ),
+    },
+    {
+      path: "/responsable/conventions/add",
+      element: (
+        <ProtectedRoute
+          element={<AddEditConventionPage />}
+          authenticated={auth?.authenticate}
+          user={auth?.user}
+        />
+      ),
+    },
+    {
+      path: "/responsable/conventions/edit/:id",
+      element: (
+        <ProtectedRoute
+          element={<AddEditConventionPage />}
           authenticated={auth?.authenticate}
           user={auth?.user}
         />

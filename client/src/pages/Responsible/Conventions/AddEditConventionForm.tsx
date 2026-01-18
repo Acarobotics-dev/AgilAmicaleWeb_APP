@@ -236,24 +236,9 @@ export function AddEditConventionForm({
   };
 
   return (
-    <div className="h-[calc(100vh-200px)] relative">
-      {/* Loading Overlay */}
-      {isSubmitting && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-900">
-              {initialData ? "Mise à jour en cours..." : "Création en cours..."}
-            </p>
-          </div>
-        </div>
-      )}
-
+    <div className="bg-white p-6 w-full space-y-6">
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(handleSubmit)}
-          className="space-y-6 p-6 h-full overflow-y-auto pb-32"
-        >
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           {/* Error Summary */}
           {errorCount > 0 && (
             <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
@@ -269,30 +254,35 @@ export function AddEditConventionForm({
             </Alert>
           )}
 
-          {/* Basic Information Section */}
-          <FormSection
-            icon={FileText}
-            title="Informations de base"
-            description="Renseignez le titre et la description de la convention"
-            variant="blue"
-          >
+          {/* Basic Information Section (hotel style) */}
+          <div className="border-l-4 border-blue-400 pl-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Informations de base
+            </h3>
+
             <FormField
               control={form.control}
               name="title"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-900">Titre *</FormLabel>
+                <FormItem className="mb-6">
+                  <FormLabel className="text-sm font-medium text-gray-900/90 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    Titre *
+                  </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                       <Input
                         placeholder="Ex: Convention avec Hôtel Marriott"
-                        className="pl-10 bg-white border-input focus:border-primary"
+                        className="pl-4 h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors text-base"
                         {...field}
                       />
+                      {form.formState.errors.title && (
+                        <AlertCircle className="absolute right-3 top-3.5 h-5 w-5 text-red-500" />
+                      )}
                     </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-red-600" />
                 </FormItem>
               )}
             />
@@ -302,17 +292,20 @@ export function AddEditConventionForm({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-gray-900">Description *</FormLabel>
+                  <FormLabel className="text-sm font-medium text-gray-900/90 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-500" />
+                    Description *
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Décrivez les termes et conditions de la convention..."
                       rows={6}
-                      className="bg-white border-input focus:border-primary resize-none"
+                      className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors resize-none"
                       {...field}
                     />
                   </FormControl>
                   <div className="flex items-center justify-between">
-                    <FormMessage />
+                    <FormMessage className="text-red-600" />
                     <span className="text-xs text-gray-500">
                       {descriptionValue?.length || 0} caractères
                     </span>
@@ -320,15 +313,15 @@ export function AddEditConventionForm({
                 </FormItem>
               )}
             />
-          </FormSection>
+          </div>
 
           {/* Image Section */}
-          <FormSection
-            icon={ImageIcon}
-            title="Image de la convention"
-            description="Ajoutez une image représentative (JPEG, PNG, WebP)"
-            variant="green"
-          >
+          <div className="border-l-4 border-green-400 pl-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-green-600" />
+              Image de la convention
+            </h3>
+
             {imageFile || initialData?.imagePath ? (
               <ImagePreview
                 file={imageFile}
@@ -345,7 +338,6 @@ export function AddEditConventionForm({
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      // Validate file size (max 5MB)
                       if (file.size > 5 * 1024 * 1024) {
                         form.setError("image", { message: "L'image ne doit pas dépasser 5MB" });
                         return;
@@ -357,9 +349,9 @@ export function AddEditConventionForm({
                 />
                 <label
                   htmlFor="image-upload"
-                  className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-gray-100/50 transition-all duration-200 bg-white"
+                  className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-gray-100/50 transition-all duration-200 bg-white"
                 >
-                  <div className="p-3 bg-primary/10 text-primary rounded-full mb-3">
+                  <div className="p-3 bg-green-50 text-green-600 rounded-full mb-3">
                     <Upload className="w-6 h-6" />
                   </div>
                   <p className="text-sm font-medium text-gray-900 mb-1">
@@ -371,15 +363,15 @@ export function AddEditConventionForm({
                 </label>
               </div>
             )}
-          </FormSection>
+          </div>
 
           {/* PDF Document Section */}
-          <FormSection
-            icon={FileDown}
-            title="Document PDF"
-            description="Téléchargez le document officiel de la convention"
-            variant="orange"
-          >
+          <div className="border-l-4 border-orange-400 pl-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <FileDown className="h-5 w-5 text-orange-600" />
+              Document PDF
+            </h3>
+
             {pdfFile || initialData?.filePath ? (
               <FilePreview
                 file={pdfFile}
@@ -396,7 +388,6 @@ export function AddEditConventionForm({
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      // Validate file size (max 10MB)
                       if (file.size > 10 * 1024 * 1024) {
                         form.setError("file", { message: "Le fichier ne doit pas dépasser 10MB" });
                         return;
@@ -408,9 +399,9 @@ export function AddEditConventionForm({
                 />
                 <label
                   htmlFor="pdf-upload"
-                  className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-gray-100/50 transition-all duration-200 bg-white"
+                  className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-gray-100/50 transition-all duration-200 bg-white"
                 >
-                  <div className="p-3 bg-orange-500/10 text-orange-600 rounded-full mb-3">
+                  <div className="p-3 bg-orange-50 text-orange-600 rounded-full mb-3">
                     <FileDown className="w-6 h-6" />
                   </div>
                   <p className="text-sm font-medium text-gray-900 mb-1">
@@ -422,48 +413,47 @@ export function AddEditConventionForm({
                 </label>
               </div>
             )}
-          </FormSection>
+          </div>
+
+          {/* Action Buttons (hotel style) */}
+          <div className="bg-gray-100 rounded-xl p-6 border border-gray-200">
+            <div className="flex flex-row sm:flex-row gap-4 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 px-6 border-gray-300 text-gray-900/90 hover:bg-gray-100"
+                onClick={handleReset}
+                disabled={isSubmitting}
+              >
+                <RotateCw className="h-5 w-5 mr-2" />
+                Réinitialiser
+              </Button>
+
+              <Button
+                type="submit"
+                className="h-12 px-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg transition-all duration-200"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>{initialData ? "Mise à jour..." : "Ajout en cours..."}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Save className="h-5 w-5" />
+                    <span>{initialData ? "Mettre à jour la convention" : "Ajouter la convention"}</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              Les champs marqués d'un astérisque <span className="text-red-600 font-bold">*</span> sont obligatoires
+            </p>
+          </div>
         </form>
       </Form>
-
-      {/* Action Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-3">
-          <p className="text-xs text-gray-500 flex-shrink-0">
-            * Champs obligatoires
-          </p>
-          <div className="flex gap-3 w-full sm:w-auto sm:ml-auto">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1 sm:flex-none gap-2"
-              onClick={handleReset}
-              disabled={isSubmitting}
-            >
-              <RotateCw className="w-4 h-4" />
-              Réinitialiser
-            </Button>
-            <Button
-              type="submit"
-              onClick={form.handleSubmit(handleSubmit)}
-              disabled={isSubmitting}
-              className="flex-1 sm:flex-none bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {initialData ? "Mise à jour..." : "Création..."}
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  {initialData ? "Mettre à jour" : "Créer la convention"}
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Event, EventType } from "./ActivityForm/types";
+import type { Event } from "./ActivityForm/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +22,7 @@ import { DeleteEventService } from "@/services";
 import { toast } from "sonner";
 
 interface ActivityTableRowProps {
-  event: Event; 
+  event: Event;
   onActionComplete?: () => void;
 }
 

@@ -12,18 +12,13 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
-
-// Parse CLIENT_URI as a comma-separated list
-const CLIENT_URIS = process.env.CLIENT_URI
-  ? process.env.CLIENT_URI.split(",").map(uri => uri.trim())
-  : [];
-
+const CLIENT_URI = process.env.CLIENT_URI; // single origin
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
 // --- Environment Validation ---
 const requiredEnvVars = {
   MONGO_URI,
-  CLIENT_URI: process.env.CLIENT_URI,
+  CLIENT_URI,
   SESSION_SECRET,
   JWT_SECRET: process.env.JWT_SECRET,
 };
@@ -34,9 +29,6 @@ if (process.env.NODE_ENV === "production") {
   requiredEnvVars.EMAIL_HOST = process.env.EMAIL_HOST;
   requiredEnvVars.EMAIL_PORT = process.env.EMAIL_PORT;
   requiredEnvVars.EMAIL_PASS = process.env.EMAIL_PASS;
-  // Note: Twilio SMS variables (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER)
-  // are optional. If missing, SMS features will be gracefully disabled via smsService.js
-  // which logs warnings and skips notifications without causing startup failures.
 }
 
 const missingVars = Object.entries(requiredEnvVars)
@@ -54,12 +46,9 @@ app.set("trust proxy", 1);
 
 // --- CORS Configuration ---
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (CLIENT_URIS.includes(origin)) {
-      return callback(null, true);
-    }
-    // Log disallowed origin and return false instead of throwing error
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow server-to-server or tools like Postman
+    if (origin === CLIENT_URI) return callback(null, true);
     console.warn(`⚠️ CORS blocked origin: ${origin}`);
     return callback(null, false);
   },
@@ -69,22 +58,22 @@ app.use(cors({
   credentials: true,
 }));
 
-// Static file headers
+// --- Static files with CORS headers ---
 app.use('/uploads', express.static('uploads', {
-  setHeaders: (res, path, stat) => {
+  setHeaders: (res) => {
     const origin = res.req.headers.origin;
-    if (origin && CLIENT_URIS.includes(origin)) {
-      res.set("Access-Control-Allow-Origin", origin);
+    if (origin === CLIENT_URI) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
     }
-    res.set("Cross-Origin-Resource-Policy", "cross-origin");
-    res.set("Access-Control-Expose-Headers", "Content-Disposition");
-    res.set("Cache-Control", "public, max-age=31536000");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+    res.setHeader("Cache-Control", "public, max-age=31536000");
   }
 }));
 
-// Extra security headers
+// --- Extra security headers ---
 app.use((req, res, next) => {
-  res.header("Cross-Origin-Embedder-Policy", "require-corp");
+  res.header("Cross-Origin-Embedder-Policy", "require-corp"); // optional: keep only if needed
   res.header("Cross-Origin-Opener-Policy", "same-origin");
   res.header("Cross-Origin-Resource-Policy", "cross-origin");
   next();
@@ -111,7 +100,6 @@ const sessionConfig = {
   cookie: {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    // Use 'lax' for local development, 'none' only when secure is true (HTTPS/production)
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 24 * 60 * 60 * 1000
   }
@@ -167,7 +155,7 @@ const connectWithRetry = async (retries = 5, interval = 5000) => {
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`🔗 Allowed Origins: ${CLIENT_URIS.join(", ")}`);
+      console.log(`🔗 Allowed Origin: ${CLIENT_URI}`);
     });
   } catch (error) {
     if (retries > 0) {

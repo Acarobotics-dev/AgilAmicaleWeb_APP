@@ -8,7 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Trash2, Eye, FileDown } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, FileDown, Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { AddEditConventionForm } from "./AddEditConventionForm";
 import { useState } from "react";
 import { DeleteConventionService, DownloadConventionService } from "@/services";
 import { toast } from "sonner";
@@ -33,12 +32,13 @@ export function ConventionTableRow({
   onActionComplete,
   onEdit,
 }: ConventionTableRowProps) {
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
+    setIsDeleting(true);
     try {
       await DeleteConventionService(convention._id);
       toast.success("Convention supprimée avec succès!");
@@ -47,6 +47,7 @@ export function ConventionTableRow({
       console.error("Échec de la suppression de la convention :", err);
       toast.error("Échec de la suppression de la convention");
     } finally {
+      setIsDeleting(false);
       setIsDeleteDialogOpen(false);
     }
   };
@@ -68,11 +69,7 @@ export function ConventionTableRow({
     }
   };
 
-  const handleSubmit = (values: any) => {
-    console.log("Updating convention:", values);
-    setIsEditDialogOpen(false);
-    onActionComplete?.();
-  };
+  // edit flow moved to dedicated page via parent's onEdit
 
   return (
     <>
@@ -160,11 +157,20 @@ export function ConventionTableRow({
               </DropdownMenuItem>
 
               <DropdownMenuItem
-                onClick={() => setIsDeleteDialogOpen(true)}
+                onClick={() => !isDeleting && setIsDeleteDialogOpen(true)}
                 className="cursor-pointer hover:bg-gray-100 flex items-center gap-2 px-4 py-2"
               >
-                <Trash2 className="h-4 w-4 text-red-500" />
-                <span className="text-sm">Supprimer</span>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                    <span className="text-sm">Suppression...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                    <span className="text-sm">Supprimer</span>
+                  </>
+                )}
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -219,25 +225,7 @@ export function ConventionTableRow({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md w-full p-6 rounded-lg shadow-lg bg-white text-gray-900">
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-lg font-semibold">
-              Modifier la Convention
-            </DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">
-              Modifiez les détails ci-dessous.
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="max-h-[70vh] pr-4">
-            <AddEditConventionForm
-              initialData={convention}
-              onSubmit={handleSubmit}
-            />
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      {/* Edit moved to dedicated page */}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -255,11 +243,19 @@ export function ConventionTableRow({
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
             >
               Annuler
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Supprimer
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 text-white animate-spin mr-2" />
+                  Suppression...
+                </>
+              ) : (
+                "Supprimer"
+              )}
             </Button>
           </div>
         </DialogContent>

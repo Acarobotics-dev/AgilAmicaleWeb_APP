@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Trash2, Eye, CheckCircle } from "lucide-react";
+import { MoreHorizontal, Trash2, Eye, CheckCircle, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,7 @@ export function BookingTableRow({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>(booking.status || "en attente");
 
   // Get user and activity from maps
@@ -61,6 +62,7 @@ export function BookingTableRow({
   const activityCategory = booking.activityCategory || "sejour Maison";
 
   const handleDelete = async () => {
+    setIsDeleting(true);
     try {
       if (!booking._id) throw new Error("Missing booking ID");
       await DeleteBookingService(booking._id);
@@ -70,6 +72,7 @@ export function BookingTableRow({
       console.error("Échec de la suppression:", err);
       toast.error("Impossible de supprimer la réservation.");
     } finally {
+      setIsDeleting(false);
       setIsDeleteDialogOpen(false);
     }
   };
@@ -185,11 +188,20 @@ export function BookingTableRow({
                 <span>Modifier Statut</span>
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setIsDeleteDialogOpen(true)}
+                onClick={() => !isDeleting && setIsDeleteDialogOpen(true)}
                 className="cursor-pointer hover:bg-gray-100 flex items-center gap-2 px-4 py-2"
               >
-                <Trash2 className="h-4 w-4 text-red-500" />
-                <span>Supprimer</span>
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                    <span>Suppression...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                    <span>Supprimer</span>
+                  </>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -396,11 +408,19 @@ export function BookingTableRow({
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
             >
               Annuler
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Supprimer
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                "Supprimer"
+              )}
             </Button>
           </div>
         </DialogContent>
