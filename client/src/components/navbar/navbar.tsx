@@ -58,43 +58,58 @@ const NavbarSection = () => {
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 bg-gray-950 shadow-lg border-b border-gray-800">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
+      <div className="container mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
+        {/* Mobile Menu Button - Left side on mobile */}
+        <div className="flex md:hidden items-center">
+          <NavigationSheet />
+        </div>
+
+        {/* Logo - Centered on mobile, left on desktop */}
         <Link
           to="/home"
           aria-label="Home"
-          className="flex-shrink-0 transition-transform hover:scale-105"
+          className="flex-shrink-0 transition-transform hover:scale-105 mx-auto md:mx-0"
         >
-          <img src={navBarLogo} alt="Logo" className="h-14 md:h-16 w-auto" />
+          <img
+            src={navBarLogo}
+            alt="Logo"
+            className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto max-w-[120px] sm:max-w-none"
+          />
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation - Hidden on mobile */}
         <div className="hidden md:flex flex-1 justify-center px-6">
           <NavMenu className="flex items-center gap-6" />
         </div>
 
         {/* Auth Buttons */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
           {!auth.authenticate ? (
             <>
-              <Link to="/signup" className="hidden sm:block">
+              {/* Sign Up Button - Always visible, icon-only on small screens */}
+              <Link to="/signup">
                 <Button
                   variant="outline"
-                  className="rounded-full px-3 sm:px-4 border-yellow-500 text-yellow-500 hover:bg-yellow-50 hover:text-yellow-700 transition-colors font-semibold"
+                  className="rounded-full px-2 sm:px-3 md:px-4 border-yellow-500 text-yellow-500 hover:bg-yellow-50 hover:text-yellow-700 transition-colors font-semibold text-xs sm:text-sm"
                   aria-label="Sign Up"
+                  size="sm"
                 >
-                  <UserPlus className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">S'inscrire</span>
+                  <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline sm:inline">S'inscrire</span>
+                  <span className="xs:hidden sm:hidden">S'incrire</span>
                 </Button>
               </Link>
+
+              {/* Login Button */}
               <Link to="/login">
                 <Button
-                  className="rounded-full px-3 sm:px-4 bg-yellow-500 hover:bg-yellow-600 transition-colors font-semibold shadow"
+                  className="rounded-full px-2 sm:px-3 md:px-4 bg-yellow-500 hover:bg-yellow-600 transition-colors font-semibold shadow text-xs sm:text-sm"
                   aria-label="Login"
+                  size="sm"
                 >
-                  <LogIn className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Connexion</span>
-                  <span className="sm:hidden">Connexion</span>
+                  <LogIn className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden xs:inline sm:inline">Connexion</span>
+                  <span className="xs:hidden sm:hidden">Conn.</span>
                 </Button>
               </Link>
             </>
@@ -104,37 +119,41 @@ const NavbarSection = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    className="rounded-full px-3 sm:px-4 bg-yellow-500 hover:bg-yellow-600 transition-colors font-semibold flex items-center gap-1"
+                    className="rounded-full px-2 sm:px-3 md:px-4 bg-yellow-500 hover:bg-yellow-600 transition-colors font-semibold flex items-center gap-1 text-xs sm:text-sm"
                     aria-label="Profile Menu"
+                    size="sm"
                   >
-                    <User className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Profil</span>
-                    <ChevronDown className="w-4 h-4 ml-1" />
+                    <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 md:mr-2" />
+                    <span className="hidden md:inline">Profil</span>
+                    <span className="md:hidden">Profil</span>
+                    <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  className="w-56 bg-gray-950 border-gray-700 shadow-xl"
+                  className="w-48 sm:w-56 bg-gray-950 border-gray-700 shadow-xl max-h-[80vh] overflow-y-auto"
                   align="end"
+                  sideOffset={5}
                 >
-                  <DropdownMenuItem asChild className="hover:bg-gray-800">
+                  <DropdownMenuItem asChild className="hover:bg-gray-800 text-xs sm:text-sm">
                     <Link
                       to="/profile"
                       className="flex items-center w-full text-gray-200"
                       aria-label="Profile"
                     >
-                      <User className="h-4 w-4 mr-2" />
+                      <User className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       Profil
                     </Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="bg-gray-700" />
-                    <DropdownMenuItem asChild className="hover:bg-gray-800">
+
+                  <DropdownMenuItem asChild className="hover:bg-gray-800 text-xs sm:text-sm">
                     <Link
                       to="/myBooking"
                       className="flex items-center w-full text-gray-200"
                       aria-label="Mes Reservations"
                     >
-                      <Book className="h-4 w-4 mr-2" />
+                      <Book className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       Mes Reservations
                     </Link>
                   </DropdownMenuItem>
@@ -143,13 +162,13 @@ const NavbarSection = () => {
 
                   {auth.user.role === "responsable" && (
                     <>
-                      <DropdownMenuItem asChild className="hover:bg-gray-800">
+                      <DropdownMenuItem asChild className="hover:bg-gray-800 text-xs sm:text-sm">
                         <Link
                           to="/responsable/dashboard"
                           className="flex items-center w-full text-gray-200"
                           aria-label="Dashboard"
                         >
-                          <Table2 className="h-4 w-4 mr-2" />
+                          <Table2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           Tableau de bord
                         </Link>
                       </DropdownMenuItem>
@@ -158,48 +177,50 @@ const NavbarSection = () => {
                   )}
 
                   {/* Logout with Confirmation Dialog */}
-                  <DropdownMenuItem className="hover:bg-gray-800 p-0">
+                  <DropdownMenuItem className="hover:bg-gray-800 p-0 text-xs sm:text-sm">
                     <Dialog>
                       <DialogTrigger asChild>
                         <button
-                          className="flex items-center w-full px-2 py-1.5 text-gray-400 cursor-pointer hover:text-red-500 transition-colors"
+                          className="flex items-center w-full px-2 py-1.5 text-gray-400 cursor-pointer hover:text-red-500 transition-colors text-xs sm:text-sm"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <LogOut className="h-4 w-4 mr-2" />
+                          <LogOut className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           Déconnexion
                         </button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-md bg-gray-900 text-gray-200 border-gray-800">
+                      <DialogContent className="sm:max-w-md bg-gray-900 text-gray-200 border-gray-800 mx-4">
                         <DialogHeader>
-                          <DialogTitle className="text-red-500 flex items-center gap-2">
-                            <LogOut className="h-5 w-5" />
+                          <DialogTitle className="text-red-500 flex items-center gap-2 text-sm sm:text-base">
+                            <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
                             Confirmer la déconnexion
                           </DialogTitle>
-                          <DialogDescription className="text-gray-400 pt-2">
+                          <DialogDescription className="text-gray-400 pt-2 text-xs sm:text-sm">
                             Êtes-vous sûr de vouloir vous déconnecter ? Votre
                             session sera perdue.
                           </DialogDescription>
                         </DialogHeader>
-                        <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4">
+                        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                           <Button
                             variant="outline"
-                            className="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 border-gray-600"
+                            className="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 border-gray-600 text-xs sm:text-sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               document.dispatchEvent(
                                 new KeyboardEvent("keydown", { key: "Escape" })
                               );
                             }}
+                            size="sm"
                           >
                             Annuler
                           </Button>
                           <Button
                             variant="destructive"
-                            className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+                            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-xs sm:text-sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleLogout();
                             }}
+                            size="sm"
                           >
                             Se déconnecter
                           </Button>
@@ -212,8 +233,8 @@ const NavbarSection = () => {
             </>
           )}
 
-          {/* Mobile Menu Button */}
-          <div className="md:block lg:hidden ml-2">
+          {/* Mobile Navigation Sheet Button - Alternative position */}
+          <div className="hidden md:block lg:hidden ml-2">
             <NavigationSheet />
           </div>
         </div>
