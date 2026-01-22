@@ -12,13 +12,15 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
-const CLIENT_URI = process.env.CLIENT_URI; // single origin
+const CLIENT_URI_1 = process.env.CLIENT_URI_1;
+const CLIENT_URI_2 = process.env.CLIENT_URI_2;
+const ALLOWED_ORIGINS = [CLIENT_URI_1, CLIENT_URI_2].filter(Boolean);
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
 // --- Environment Validation ---
 const requiredEnvVars = {
   MONGO_URI,
-  CLIENT_URI,
+  CLIENT_URI_1,
   SESSION_SECRET,
   JWT_SECRET: process.env.JWT_SECRET,
 };
@@ -48,7 +50,7 @@ app.set("trust proxy", 1);
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // allow server-to-server or tools like Postman
-    if (origin === CLIENT_URI) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
     console.warn(`⚠️ CORS blocked origin: ${origin}`);
     return callback(null, false);
   },
@@ -62,7 +64,7 @@ app.use(cors({
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res) => {
     const origin = res.req.headers.origin;
-    if (origin === CLIENT_URI) {
+    if (ALLOWED_ORIGINS.includes(origin)) {
       res.setHeader("Access-Control-Allow-Origin", origin);
     }
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
