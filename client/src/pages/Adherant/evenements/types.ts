@@ -15,11 +15,11 @@ export interface BaseEvent {
   featuredPhoto?: string;
   startDate: Date; // Universal start date
   endDate: Date; // Universal end date
-  pricing: {
-    basePrice: number;
-    cojoinPrice?: number;
-    childPrice?: number;
-  };
+  pricing: number;
+  cojoinPresence?: boolean;
+  cojoinPrice?: number;
+  childPresence?: boolean;
+  childPrice?: number;
   includes?: string[];
   maxParticipants?: number;
   currentParticipants?: number;

@@ -6,7 +6,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import { AddEditUserForm } from "./AddEditUserForm";
 import { AddUserService, getAllUsersService, UpdateUserService } from "@/services";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { User } from "./types";
 import { ArrowLeft, User as UserIcon, UserPlus, Edit3, Save, X } from "lucide-react";
 import { TailChase } from "ldrs/react";
@@ -123,7 +123,7 @@ export function AddEditUserPage() {
       <div className="min-h-screen flex w-full bg-gray-100">
         <AppSidebar />
         <main className="flex-1 p-4 md:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto space-y-6">
+          <div className="max-w-7xl mx-auto space-y-6">
             {/* Header Section */}
             <div className="bg-white rounded-xl shadow border border-gray-200 mb-6">
               <div className="p-5 sm:p-6">

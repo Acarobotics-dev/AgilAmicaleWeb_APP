@@ -19,13 +19,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "react-toastify";
 import { AlertTriangle, Trash2 } from "lucide-react";
 import { updatePasswordService, DeleteUserService } from "@/services";
 import { AuthContext } from "@/context/auth-context";
 
 const DeleteAccountSection = () => {
-  const { toast } = useToast();
+  // No local toast hook needed
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -35,25 +35,17 @@ const DeleteAccountSection = () => {
   const [newPassword, setNewPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  const { auth ,resetCredentials } = useContext(AuthContext);
+  const { auth, resetCredentials } = useContext(AuthContext);
   const userId = auth.user?._id;
 
   const handleDeleteAccount = async () => {
     if (confirmationText !== "SUPPRIMER") {
-      toast({
-        title: "Erreur",
-        description: "Veuillez taper 'SUPPRIMER' pour confirmer la suppression.",
-        variant: "destructive",
-      });
+      toast.error("Veuillez taper 'SUPPRIMER' pour confirmer la suppression.");
       return;
     }
 
     if (!userId) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de récupérer l'identifiant utilisateur.",
-        variant: "destructive",
-      });
+      toast.error("Impossible de récupérer l'identifiant utilisateur.");
       return;
     }
 
@@ -62,21 +54,14 @@ const DeleteAccountSection = () => {
     try {
       await DeleteUserService(userId); // Call to backend service
 
-      toast({
-        title: "Compte supprimé",
-        description: "Votre compte a été supprimé avec succès.",
-      });
+      toast.success("Votre compte a été supprimé avec succès.");
 
       // Clear auth context and redirect
-     resetCredentials();
-     sessionStorage.clear()
+      resetCredentials();
+      sessionStorage.clear()
       navigate("/"); // Redirect to homepage or login
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le compte. Veuillez réessayer.",
-        variant: "destructive",
-      });
+      toast.error("Impossible de supprimer le compte. Veuillez réessayer.");
     } finally {
       setIsDeleting(false);
       setIsOpen(false);
@@ -86,20 +71,12 @@ const DeleteAccountSection = () => {
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs.",
-        variant: "destructive",
-      });
+      toast.error("Veuillez remplir tous les champs.");
       return;
     }
 
     if (!userId) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de récupérer l'identifiant utilisateur.",
-        variant: "destructive",
-      });
+      toast.error("Impossible de récupérer l'identifiant utilisateur.");
       return;
     }
 
@@ -109,21 +86,14 @@ const DeleteAccountSection = () => {
       const response = await updatePasswordService(currentPassword, newPassword, userId);
 
       if (response?.success) {
-        toast({
-          title: "Succès",
-          description: "Mot de passe mis à jour avec succès.",
-        });
+        toast.success("Mot de passe mis à jour avec succès.");
         setCurrentPassword("");
         setNewPassword("");
       } else {
         throw new Error("Échec de la mise à jour du mot de passe");
       }
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le mot de passe.",
-        variant: "destructive",
-      });
+      toast.error("Impossible de mettre à jour le mot de passe.");
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -231,7 +201,7 @@ const DeleteAccountSection = () => {
                 </div>
               </div>
               <DialogFooter>
-             
+
                 <Button
                   variant="destructive"
                   onClick={handleDeleteAccount}

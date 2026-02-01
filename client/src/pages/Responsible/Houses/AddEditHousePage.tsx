@@ -10,7 +10,7 @@ import {
   getAllHousesService,
   UpdateHouseService,
 } from "@/services";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { House } from "./types";
 import { ArrowLeft, Home as HomeIcon, HousePlus, Edit3 } from "lucide-react";
 import { TailChase } from "ldrs/react";

@@ -1,50 +1,37 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft, Loader2, Calendar, Clock, DollarSign, List } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { TailChase } from "ldrs/react";
-import "ldrs/react/TailChase.css";
 import NavbarSection from "@/components/navbar/navbar";
 import { getUserBooking } from "@/services";
 import Footer from "@/components/footer";
 import { useAuth } from "@/context/auth-context";
-import { PaginationComponent } from "@/components/common/paginationComponent";
+import { DataTable } from "@/components/common/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { createTextColumn, createBadgeColumn } from "@/components/common/table-columns";
 
-interface Booking {
+interface BookingRow {
   id: string;
-  service?: string;
-  consultant?: string;
-  date?: string;
-  time?: string;
-  duration?: number;
+  title: string;
+  category: string;
+  periodText: string;
+  durationText: string;
+  isStay: boolean;
+  priceText: string;
   status?: string;
-  price?: number;
-  notes?: string;
+  createdAt?: string;
 }
 
-const getStatusColor = (status: string | undefined) => {
-  if (!status) return "bg-gray-100 text-gray-500";
-  const s = status.toString().toLowerCase();
-  if (s.includes("confirm" ) || s.includes("confirmé")) return "bg-info text-info-foreground";
-  if (s.includes("termin") || s.includes("completed") || s.includes("terminé")) return "bg-success text-success-foreground";
-  if (s.includes("attente") || s.includes("pending")) return "bg-warning text-warning-foreground";
-  if (s.includes("annul") || s.includes("cancel")) return "bg-destructive text-destructive-foreground";
-  return "bg-gray-100 text-gray-500";
-};
-
-const getStatusText = (status: string | undefined) => {
-  if (!status) return "En attente";
-  const s = status.toString().toLowerCase();
-  if (s.includes("confirm" ) || s.includes("confirmé")) return "Confirmé";
-  if (s.includes("termin") || s.includes("completed") || s.includes("terminé")) return "Terminé";
-  if (s.includes("attente") || s.includes("pending")) return "En attente";
-  if (s.includes("annul") || s.includes("cancel")) return "Annulé";
-  return status;
+const statusVariants = {
+  confirmé: { className: "bg-blue-100 text-blue-800", label: "Confirmé" },
+  "en attente": { className: "bg-amber-100 text-amber-800", label: "En attente" },
+  annulé: { className: "bg-red-100 text-red-800", label: "Annulé" },
+  terminé: { className: "bg-emerald-100 text-emerald-800", label: "Terminé" },
+  default: { className: "bg-gray-100 text-gray-800", label: "Inconnu" },
 };
 
 export const MyBookings: React.FC = () => {
@@ -59,73 +46,93 @@ export const MyBookings: React.FC = () => {
     enabled: !!userId,
   });
 
-  // derive rows from API payload
-  const rows = (bookingsData?.data || []).map((b: any) => {
-    const activity = b.activity || {};
-    const title = activity.title || activity.destination || "N/A";
-    const category = b.activityCategory || activity.type || "N/A";
+  // Data transformation
+  const rows: BookingRow[] = useMemo(() => {
+    return (bookingsData?.data || []).map((b: any) => {
+      const activity = b.activity || {};
+      const title = activity.title || activity.destination || "N/A";
+      const category = b.activityCategory || activity.type || "N/A";
 
-    const start = b.bookingPeriod?.start ?? activity.startDate ?? null;
-    const end = b.bookingPeriod?.end ?? activity.endDate ?? null;
-    const periodText = start && end
-      ? `${new Date(start).toLocaleDateString('fr-FR')} - ${new Date(end).toLocaleDateString('fr-FR')}`
-      : (start ? new Date(start).toLocaleDateString('fr-FR') : 'N/A');
+      const start = b.bookingPeriod?.start ?? activity.startDate ?? null;
+      const end = b.bookingPeriod?.end ?? activity.endDate ?? null;
+      const periodText = start && end
+        ? `${new Date(start).toLocaleDateString('fr-FR')} - ${new Date(end).toLocaleDateString('fr-FR')}`
+        : (start ? new Date(start).toLocaleDateString('fr-FR') : 'N/A');
 
-    const isStay = (b.activityCategory || "").toString().toLowerCase() === "sejour maison";
+      const isStay = (b.activityCategory || "").toString().toLowerCase() === "sejour maison";
 
-    let durationText = '-';
-    if (activity.durationHours) durationText = `${activity.durationHours} h`;
-    else if (start && end) {
-      const diff = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
-      durationText = `${diff} j`;
-    }
+      let durationText = '-';
+      if (activity.durationHours) durationText = `${activity.durationHours} h`;
+      else if (start && end) {
+        const diff = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
+        durationText = `${diff} j`;
+      }
 
-    let priceText = 'N/A';
-    if (activity.pricing?.basePrice) priceText = `${activity.pricing.basePrice} TND`;
-    else if (activity.price && Array.isArray(activity.price) && b.bookingPeriod) {
-      const match = activity.price.find((p: any) => {
-        const pStart = new Date(p.week?.startdate).toISOString();
-        const bStart = new Date(b.bookingPeriod.start).toISOString();
-        return pStart === bStart;
-      });
-      if (match) priceText = `${match.price} TND`;
-      else if (activity.price.length) priceText = `${activity.price[0].price} TND`;
-    }
+      let priceText = 'N/A';
+      if (typeof activity.pricing === 'object' && activity.pricing?.basePrice) priceText = `${activity.pricing.basePrice} TND`;
+      else if (typeof activity.pricing === 'number' && activity.pricing) priceText = `${activity.pricing} TND`;
+      else if (activity.price && Array.isArray(activity.price) && b.bookingPeriod) {
+        const match = activity.price.find((p: any) => {
+          const pStart = new Date(p.week?.startdate).toISOString();
+          const bStart = new Date(b.bookingPeriod.start).toISOString();
+          return pStart === bStart;
+        });
+        if (match) priceText = `${match.price} TND`;
+        else if (activity.price.length) priceText = `${activity.price[0].price} TND`;
+      }
 
-    return {
-      id: b._id,
-      title,
-      category,
-      periodText,
-      durationText,
-      isStay,
-      priceText,
-      status: b.status,
-      createdAt: b.createdAt,
-    } as Booking & { periodText: string; durationText: string; isStay: boolean; priceText: string };
-  });
+      return {
+        id: b._id,
+        title,
+        category,
+        periodText,
+        durationText,
+        isStay,
+        priceText,
+        status: b.status || "en attente",
+        createdAt: b.createdAt,
+      };
+    });
+  }, [bookingsData]);
 
-  const filteredRows = rows.filter((r: any) =>
-    r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (r.category || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRows = useMemo(() => {
+    return rows.filter((r) =>
+      r.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [rows, searchTerm]);
 
-  // Pagination
+  const columns: ColumnDef<BookingRow>[] = useMemo(() => [
+    {
+      accessorKey: "title",
+      header: "Service",
+      cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.title}</span>
+    },
+    createTextColumn<BookingRow>("category", "Catégorie"),
+    createTextColumn<BookingRow>("periodText", "Période"),
+    {
+      id: "duration",
+      header: "Durée",
+      cell: ({ row }) => row.original.isStay ? row.original.durationText : "-"
+    },
+    createBadgeColumn<BookingRow>("status", "Statut", statusVariants),
+    {
+      accessorKey: "priceText",
+      header: "Prix",
+      cell: ({ row }) => <span className="font-semibold text-gray-700">{row.original.priceText}</span>
+    },
+  ], []);
+
   const ITEMS_PER_PAGE = 10;
-  const [currentPage, setCurrentPage] = useState(1);
-  useEffect(() => setCurrentPage(1), [searchTerm, bookingsData?.data?.length]);
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / ITEMS_PER_PAGE));
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentRows = filteredRows.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   if (isLoading) {
     return (
       <>
         <NavbarSection />
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
-            <TailChase size={48} color="#f59e0b" />
-            <p className="mt-4 text-gray-500">Chargement de vos réservations...</p>
+            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+            <p className="text-gray-500 font-medium">Chargement de vos réservations...</p>
           </div>
         </div>
         <Footer />
@@ -137,10 +144,14 @@ export const MyBookings: React.FC = () => {
     return (
       <>
         <NavbarSection />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">Erreur lors du chargement des réservations.</p>
-            <Button onClick={() => refetch()}>Réessayer</Button>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center max-w-md p-6 bg-white rounded-xl shadow-lg">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <List className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Oups !</h3>
+            <p className="text-gray-500 mb-6">Une erreur est survenue lors du chargement de vos réservations.</p>
+            <Button onClick={() => refetch()} className="w-full">Réessayer</Button>
           </div>
         </div>
         <Footer />
@@ -152,97 +163,105 @@ export const MyBookings: React.FC = () => {
     <>
       <NavbarSection />
 
-      <div className="max-w-7xl mx-auto px-4 py-24 space-y-8">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col md:flex-row items-center gap-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="flex items-center gap-2 p-2 rounded-md">
+      <div className="max-w-7xl mx-auto px-4 py-24 space-y-8 min-h-screen bg-transparent">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row items-center gap-6">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-100">
               <ArrowLeft className="w-4 h-4" />
-              <span>Retour</span>
+              <span className="hidden sm:inline">Retour</span>
             </Button>
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xl font-bold">MJ</div>
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-md">
+              <List className="w-6 h-6 sm:w-8 sm:h-8" />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Mes Réservations</h1>
-              <p className="text-sm text-gray-500">Consultez et gérez vos réservations</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Mes Réservations</h1>
+              <p className="text-xs sm:text-sm text-gray-500">Consultez l'historique de vos activités</p>
             </div>
           </div>
 
           <div className="ml-auto w-full md:w-72">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500/80" />
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
               <Input
-                placeholder="Rechercher des réservations..."
+                placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-12 rounded-lg border-gray-200 shadow-sm"
+                className="pl-10 h-11 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white transition-all shadow-sm focus:shadow-md"
               />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold">Réservations récentes</h2>
+        {/* Content */}
+        <Card className="border-gray-200 shadow-sm overflow-hidden">
+          <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
+            <div className="font-semibold text-gray-700 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-500" />
+              Réservations récentes
+            </div>
+            <Badge variant="outline" className="bg-white">{filteredRows.length} résultats</Badge>
           </div>
 
-          <div className="p-4">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow className="bg-gray-100">
-                  <TableHead className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Service</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Période</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Durée</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</TableHead>
-                </TableRow>
-              </TableHeader>
+          <div className="hidden sm:block p-0">
+            <DataTable
+              columns={columns}
+              data={filteredRows}
+              showSearch={false}
+              showColumnVisibility={false}
+              initialPageSize={ITEMS_PER_PAGE}
+              emptyState={
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Calendar className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <h3 className="text-gray-900 font-medium mb-1">Aucune réservation</h3>
+                  <p className="text-gray-500 text-sm">Vous n'avez pas encore effectué de réservation.</p>
+                </div>
+              }
+            />
+          </div>
 
-              <TableBody>
-                {currentRows.length > 0 ? (
-                  currentRows.map((booking: any) => (
-                    <TableRow key={booking.id} className="hover:bg-gray-100">
-                      <TableCell className="px-4 py-3">
-                        <div>
-                          <div className="font-medium">{booking.title}</div>
-                        </div>
-                      </TableCell>
+          {/* Mobile View */}
+          <div className="sm:hidden p-4 space-y-4 bg-white">
+            {filteredRows.length > 0 ? filteredRows.map(row => (
+              <div key={row.id} className="border border-gray-100 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] bg-white space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{row.title}</h3>
+                    <p className="text-xs text-blue-600 font-medium bg-blue-50 inline-block px-2 py-0.5 rounded-full mt-1">{row.category}</p>
+                  </div>
+                  <Badge className={`${statusVariants[row.status as keyof typeof statusVariants] || statusVariants.default} border-0 shadow-none`}>
+                    {row.status}
+                  </Badge>
+                </div>
 
-                      <TableCell className="px-4 py-3">{booking.category}</TableCell>
+                <div className="grid grid-cols-2 gap-3 text-sm py-2 border-t border-b border-gray-50 my-2">
+                  <div className="space-y-1">
+                    <p className="text-gray-500 text-xs flex items-center gap-1"><Calendar className="w-3 h-3" /> Période</p>
+                    <p className="font-medium text-gray-700">{row.periodText}</p>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-gray-500 text-xs flex items-center justify-end gap-1">Durée <Clock className="w-3 h-3" /></p>
+                    <p className="font-medium text-gray-700">{row.isStay ? row.durationText : "-"}</p>
+                  </div>
+                </div>
 
-                      <TableCell className="px-4 py-3">{booking.periodText}</TableCell>
-
-                      <TableCell className="px-4 py-3">{booking.isStay ? booking.durationText : "-"}</TableCell>
-
-                      <TableCell className="px-4 py-3">
-                        <Badge className={getStatusColor(booking.status)}>{getStatusText(booking.status)}</Badge>
-                      </TableCell>
-
-                      <TableCell className="px-4 py-3">{booking.priceText}</TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="px-4 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center">
-                          <Search className="w-6 h-6 text-gray-500/80" />
-                        </div>
-                        <h3 className="text-base font-semibold text-gray-900">Aucun résultat</h3>
-                        <p className="text-sm text-gray-500">Aucune réservation ne correspond à vos critères.</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            {totalPages > 1 && (
-              <div className="p-4 border-t flex justify-center">
-                <PaginationComponent currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-xs text-gray-400">ID: {row.id.slice(0, 8)}...</span>
+                  <div className="flex items-center gap-1 text-gray-900 font-bold">
+                    <DollarSign className="w-4 h-4 text-emerald-500" />
+                    {row.priceText}
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-10 text-gray-500">
+                <p>Aucun résultat trouvé pour "{searchTerm}"</p>
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
       <Footer />

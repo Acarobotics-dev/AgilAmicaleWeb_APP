@@ -4,4 +4,6 @@ export type Convention = {
   imagePath: string;
   description: string;
   filePath?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };

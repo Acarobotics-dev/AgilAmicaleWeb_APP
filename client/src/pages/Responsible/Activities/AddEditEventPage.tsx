@@ -6,7 +6,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import { AddEditEventForm } from "./ActivityForm/AddEditEventForm";
 import { AddEventService, getAllEvents, UpdateEventService } from "@/services";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { Event } from "./ActivityForm/types";
 import {
   ArrowLeft,

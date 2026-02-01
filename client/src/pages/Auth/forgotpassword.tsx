@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import LoginPicture from "@/assests/AGILLoginPicture.webp";
 import { ForgotpasswordService } from "@/services";
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  // No local toast hook needed
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,22 +39,15 @@ const ForgotPasswordPage = () => {
     setIsLoading(true);
 
     try {
-     const response = await ForgotpasswordService({ userEmail: email });
+      const response = await ForgotpasswordService({ userEmail: email });
 
-        toast({
-          title: "Email envoyé avec succès",
-          description: response.message || "Vérifiez votre boîte mail pour le lien de réinitialisation",
-        });
-        setEmail("");
+      toast.success(response.message || "Vérifiez votre boîte mail pour le lien de réinitialisation");
+      setEmail("");
 
     } catch (err: any) {
       // Handle network errors or unexpected exceptions
       const errorMessage = err.message || "Une erreur inattendue s'est produite";
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

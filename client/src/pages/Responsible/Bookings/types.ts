@@ -70,11 +70,11 @@ export interface BaseEvent {
   description: string;
   images: string[];
   featuredPhoto?: string;
-  pricing: {
-    basePrice: number;
-    cojoinPrice?: number;
-    childPrice?: number;
-  };
+  pricing: number;
+  cojoinPresence?: boolean;
+  cojoinPrice?: number;
+  childPresence?: boolean;
+  childPrice?: number;
   includes?: string[];
   maxParticipants?: number;
   currentParticipants?: number;

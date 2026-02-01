@@ -1,5 +1,5 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ProtectedRoute from "@/components/common/protectedRoute";
 import SignUp from "@/pages/Auth/inscription";
@@ -80,9 +80,9 @@ const App = () => {
         />
       ),
     },
-     {
+    {
       path: "/reset-password/:token",
-      element:<ResetPasswordPage/>
+      element: <ResetPasswordPage />
     },
 
     {
@@ -105,7 +105,7 @@ const App = () => {
         />
       ),
     },
-     {
+    {
       path: "/myBooking",
       element: (
         <ProtectedRoute
@@ -291,7 +291,7 @@ const App = () => {
       path: "/responsable/houses/view/:houseId",
       element: (
         <ProtectedRoute
-          element={<HouseDetailsPage  />}
+          element={<HouseDetailsPage />}
           authenticated={auth?.authenticate}
           user={auth?.user}
         />
@@ -391,8 +391,7 @@ const App = () => {
 
   return (
     <>
-      <Toaster />
-      <Sonner />
+      <ToastContainer position="top-right" autoClose={3000} />
       <RouterProvider router={routes} />
     </>
   );

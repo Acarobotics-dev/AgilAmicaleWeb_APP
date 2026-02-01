@@ -240,9 +240,8 @@ export default function EvenementsList() {
             >
               <div className="relative overflow-hidden rounded-t-3xl">
                 <img
-                  src={`${
-                    import.meta.env.VITE_API_BASE_URL
-                  }/${event.featuredPhoto || "placeholder-event.jpg"}`}
+                  src={`${import.meta.env.VITE_API_BASE_URL
+                    }/${event.featuredPhoto || "placeholder-event.jpg"}`}
                   alt={event.title || "Image événement"}
                   className="w-full h-56 object-cover transition-transform duration-700 group-hover:scale-110"
                 />
@@ -289,9 +288,11 @@ export default function EvenementsList() {
                     </Button>
                   </div>
                   <div className="text-xl font-semibold bg-gradient-to-r from-yellow-600 to-yellow-400 text-transparent bg-clip-text">
-                    {event.pricing?.basePrice
-                      ? `${event.pricing.basePrice} TND`
-                      : "Prix N/A"}
+                    {typeof event.pricing === 'object'
+                      ? `${(event.pricing as any)?.basePrice || 'N/A'} TND`
+                      : event.pricing
+                        ? `${event.pricing} TND`
+                        : "Prix N/A"}
                   </div>
                 </div>
               </CardContent>

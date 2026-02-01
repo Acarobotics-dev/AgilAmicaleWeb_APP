@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LoginPicture from "@/assests/AGILLoginPicture.webp";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { AuthContext } from "@/context/auth-context";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
@@ -177,46 +177,46 @@ const SignUp = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (isSubmitting) return;
+    e.preventDefault();
+    if (isSubmitting) return;
 
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  setIsSubmitting(true);
+    setIsSubmitting(true);
 
-  try {
-    const response = await handleRegisterUser(formData);
+    try {
+      const response = await handleRegisterUser(formData);
 
-    if (response?.success) {
-      toast.success(response.message || "Inscription réussie !");
-      navigate("/login");
-    } else {
-      // Handle different error types with specific messages
-      const errorMessage = response?.message || "Échec de l'inscription";
+      if (response?.success) {
+        toast.success(response.message || "Inscription réussie !");
+        navigate("/login");
+      } else {
+        // Handle different error types with specific messages
+        const errorMessage = response?.message || "Échec de l'inscription";
 
-      // You can also handle specific error types differently
-      switch (response?.type) {
-        case ERROR_TYPES.EMAIL_EXISTS:
-          toast.error("Cet email est déjà utilisé.");
-          break;
-        case ERROR_TYPES.MATRICULE_EXISTS:
-          toast.error("Ce matricule est déjà utilisé.");
-          break;
-        case ERROR_TYPES.MISSING_FIELDS:
-          toast.error("Veuillez remplir tous les champs obligatoires.");
-          break;
-        default:
-          toast.error(errorMessage);
+        // You can also handle specific error types differently
+        switch (response?.type) {
+          case ERROR_TYPES.EMAIL_EXISTS:
+            toast.error("Cet email est déjà utilisé.");
+            break;
+          case ERROR_TYPES.MATRICULE_EXISTS:
+            toast.error("Ce matricule est déjà utilisé.");
+            break;
+          case ERROR_TYPES.MISSING_FIELDS:
+            toast.error("Veuillez remplir tous les champs obligatoires.");
+            break;
+          default:
+            toast.error(errorMessage);
+        }
       }
+    } catch (error: any) {
+      // Fallback error handling
+      toast.error("Une erreur inattendue est survenue");
+      console.error("Registration error:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (error: any) {
-    // Fallback error handling
-    toast.error("Une erreur inattendue est survenue");
-    console.error("Registration error:", error);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const getPasswordRequirements = (password: string) => {
     const requirements = [
@@ -294,13 +294,12 @@ const SignUp = () => {
                     value={formData.firstName}
                     onChange={handleChange}
                     required
-                    className={`transition-all duration-200 border-gray-300 ${
-                      errors.firstName
+                    className={`transition-all duration-200 border-gray-300 ${errors.firstName
                         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
                         : formData.firstName && !errors.firstName
-                        ? "border-green-400 focus:border-green-500 focus:ring-green-200"
-                        : "focus:border-yellow-500 focus:ring-yellow-500/20"
-                    }`}
+                          ? "border-green-400 focus:border-green-500 focus:ring-green-200"
+                          : "focus:border-yellow-500 focus:ring-yellow-500/20"
+                      }`}
                     aria-invalid={!!errors.firstName}
                     aria-describedby="firstName-error"
                   />
@@ -327,13 +326,12 @@ const SignUp = () => {
                     value={formData.lastName}
                     onChange={handleChange}
                     required
-                    className={`transition-all duration-200 border-gray-300 ${
-                      errors.lastName
+                    className={`transition-all duration-200 border-gray-300 ${errors.lastName
                         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
                         : formData.lastName && !errors.lastName
-                        ? "border-green-400 focus:border-green-500 focus:ring-green-200"
-                        : "focus:border-yellow-500 focus:ring-yellow-500/20"
-                    }`}
+                          ? "border-green-400 focus:border-green-500 focus:ring-green-200"
+                          : "focus:border-yellow-500 focus:ring-yellow-500/20"
+                      }`}
                     aria-invalid={!!errors.lastName}
                     aria-describedby="lastName-error"
                   />
@@ -364,13 +362,12 @@ const SignUp = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className={`transition-all duration-200 border-gray-300 ${
-                    errors.email
+                  className={`transition-all duration-200 border-gray-300 ${errors.email
                       ? "border-red-400 focus:border-red-500 focus:ring-red-200"
                       : formData.email && !errors.email
-                      ? "border-green-400 focus:border-green-500 focus:ring-green-200"
-                      : "focus:border-yellow-500 focus:ring-yellow-500/20"
-                  }`}
+                        ? "border-green-400 focus:border-green-500 focus:ring-green-200"
+                        : "focus:border-yellow-500 focus:ring-yellow-500/20"
+                    }`}
                   aria-invalid={!!errors.email}
                   aria-describedby="email-error"
                 />
@@ -399,13 +396,12 @@ const SignUp = () => {
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     required
-                    className={`transition-all duration-200 border-gray-300 focus:border-yellow-500 focus:ring-yellow-500/20 ${
-                      touched.phone && errors.phone
+                    className={`transition-all duration-200 border-gray-300 focus:border-yellow-500 focus:ring-yellow-500/20 ${touched.phone && errors.phone
                         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
                         : formData.phone && !errors.phone
-                        ? "border-green-500 focus:border-green-500 focus:ring-green-200"
-                        : ""
-                    }`}
+                          ? "border-green-500 focus:border-green-500 focus:ring-green-200"
+                          : ""
+                      }`}
                     aria-invalid={!!errors.phone}
                     aria-describedby="phone-error"
                     inputProps={{
@@ -435,13 +431,12 @@ const SignUp = () => {
                     value={formData.matricule}
                     onChange={handleChange}
                     required
-                    className={`transition-all duration-200 border-gray-300 ${
-                      errors.matricule
+                    className={`transition-all duration-200 border-gray-300 ${errors.matricule
                         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
                         : formData.matricule && !errors.matricule
-                        ? "border-green-400 focus:border-green-500 focus:ring-green-200"
-                        : "focus:border-yellow-500 focus:ring-yellow-500/20"
-                    }`}
+                          ? "border-green-400 focus:border-green-500 focus:ring-green-200"
+                          : "focus:border-yellow-500 focus:ring-yellow-500/20"
+                      }`}
                     aria-invalid={!!errors.matricule}
                     aria-describedby="matricule-error"
                   />
@@ -472,13 +467,12 @@ const SignUp = () => {
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    className={`pr-10 transition-all duration-200 border-gray-300 ${
-                      errors.password
+                    className={`pr-10 transition-all duration-200 border-gray-300 ${errors.password
                         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
                         : passwordStrength === 5
-                        ? "border-green-400 focus:border-green-500 focus:ring-green-200"
-                        : "focus:border-yellow-500 focus:ring-yellow-500/20"
-                    }`}
+                          ? "border-green-400 focus:border-green-500 focus:ring-green-200"
+                          : "focus:border-yellow-500 focus:ring-yellow-500/20"
+                      }`}
                     aria-describedby="password-strength password-error password-req"
                     aria-invalid={!!errors.password}
                   />
@@ -508,10 +502,9 @@ const SignUp = () => {
                         <span className="text-xs font-medium text-gray-500">
                           Force du mot de passe
                         </span>
-                        <span className={`text-xs font-medium ${
-                          passwordStrength <= 2 ? "text-red-500" :
-                          passwordStrength <= 4 ? "text-yellow-600" : "text-green-600"
-                        }`}>
+                        <span className={`text-xs font-medium ${passwordStrength <= 2 ? "text-red-500" :
+                            passwordStrength <= 4 ? "text-yellow-600" : "text-green-600"
+                          }`}>
                           {passwordStrength <= 2 && "Faible"}
                           {passwordStrength > 2 && passwordStrength <= 4 && "Moyen"}
                           {passwordStrength === 5 && "Fort"}
@@ -521,15 +514,14 @@ const SignUp = () => {
                         {[1, 2, 3, 4, 5].map((level) => (
                           <div
                             key={level}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                              level <= passwordStrength
+                            className={`h-1.5 rounded-full transition-all duration-300 ${level <= passwordStrength
                                 ? passwordStrength <= 2
                                   ? "bg-red-500"
                                   : passwordStrength <= 4
-                                  ? "bg-yellow-500"
-                                  : "bg-green-500"
+                                    ? "bg-yellow-500"
+                                    : "bg-green-500"
                                 : "bg-gray-200"
-                            }`}
+                              }`}
                           />
                         ))}
                       </div>
@@ -543,9 +535,8 @@ const SignUp = () => {
                         <div className="space-y-1">
                           {getPasswordRequirements(formData.password).map((req, index) => (
                             <div key={index} className="flex items-center gap-2 text-xs">
-                              <div className={`w-3 h-3 rounded-full flex items-center justify-center ${
-                                req.met ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-500"
-                              }`}>
+                              <div className={`w-3 h-3 rounded-full flex items-center justify-center ${req.met ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-500"
+                                }`}>
                                 {req.met && <CheckCircle className="w-2 h-2" />}
                               </div>
                               <span className={req.met ? "text-green-600" : "text-gray-500"}>
@@ -572,13 +563,12 @@ const SignUp = () => {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
-                    className={`pr-10 transition-all duration-200 border-gray-300 ${
-                      errors.confirmPassword
+                    className={`pr-10 transition-all duration-200 border-gray-300 ${errors.confirmPassword
                         ? "border-red-400 focus:border-red-500 focus:ring-red-200"
                         : formData.confirmPassword && !errors.confirmPassword
-                        ? "border-green-400 focus:border-green-500 focus:ring-green-200"
-                        : "focus:border-yellow-500 focus:ring-yellow-500/20"
-                    }`}
+                          ? "border-green-400 focus:border-green-500 focus:ring-green-200"
+                          : "focus:border-yellow-500 focus:ring-yellow-500/20"
+                      }`}
                     aria-invalid={!!errors.confirmPassword}
                     aria-describedby="confirmPassword-error"
                   />

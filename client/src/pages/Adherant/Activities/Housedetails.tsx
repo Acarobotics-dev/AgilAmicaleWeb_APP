@@ -7,7 +7,7 @@ import { TailChase } from "ldrs/react";
 import "ldrs/react/TailChase.css";
 import { House } from "./types";
 import { useAuth } from "@/context/auth-context";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import AmenitiesSection from "./AmenitiesSection";
 import GallerySection from "./GallerySection";
 import {
@@ -24,6 +24,7 @@ export default function HouseDetails() {
   const navigate = useNavigate();
   const [house, setHouse] = useState<House | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedImg, setExpandedImg] = useState<string | null>(null);
   const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
   const { auth } = useAuth();
   const [activityCategory] = useState("Sejour Maison");
@@ -83,7 +84,7 @@ export default function HouseDetails() {
           userMessage = "Une erreur inattendue s'est produite.";
       }
 
-      toast.error(userMessage, { duration: 10000 });
+      toast.error(userMessage, { autoClose: 10000 });
       console.error("Booking error details:", error);
     }
   }, [auth, house, activityCategory, selectedPeriodIndex, navigate]);
@@ -161,8 +162,10 @@ export default function HouseDetails() {
           <div className="lg:col-span-2 space-y-6">
             {/* Image Gallery */}
             <GallerySection
-              images={house.images}
+              images={house.images.map(img => img.url)}
               title={house.title}
+              expandedImg={expandedImg}
+              setExpandedImg={setExpandedImg}
             />
 
             {/* Description */}
@@ -233,11 +236,10 @@ export default function HouseDetails() {
                       {house.price.map((period, index) => (
                         <label
                           key={index}
-                          className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
-                            selectedPeriodIndex === index
-                              ? "bg-amber-500 text-white border-amber-500 shadow-md"
-                              : "bg-white text-gray-900/90 border-gray-300 hover:border-amber-400 hover:bg-amber-50"
-                          }`}
+                          className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${selectedPeriodIndex === index
+                            ? "bg-amber-500 text-white border-amber-500 shadow-md"
+                            : "bg-white text-gray-900/90 border-gray-300 hover:border-amber-400 hover:bg-amber-50"
+                            }`}
                         >
                           <input
                             type="radio"

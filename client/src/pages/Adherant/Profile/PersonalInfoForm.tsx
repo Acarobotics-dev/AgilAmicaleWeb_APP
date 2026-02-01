@@ -3,7 +3,7 @@ import { useEffect, useState, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "react-toastify";
 import { Save } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { getUserByIdService, UpdateUserService } from "@/services";
@@ -23,7 +23,7 @@ interface UserProfile {
 
 const PersonalInfoForm = () => {
   const { auth } = useAuth();
-  const { toast } = useToast();
+  // No local toast hook needed
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -59,11 +59,7 @@ const PersonalInfoForm = () => {
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de récupérer les informations de l'utilisateur.",
-          variant: "destructive",
-        });
+        toast.error("Impossible de récupérer les informations de l'utilisateur.");
       } finally {
         setIsLoading(false);
       }
@@ -111,18 +107,11 @@ const PersonalInfoForm = () => {
     try {
       const response = await UpdateUserService(profileInfoID, formData);
       if (response) {
-        toast({
-          title: "Profil mis à jour",
-          description: "Vos informations ont été sauvegardées avec succès.",
-        });
+        toast.success("Vos informations ont été sauvegardées avec succès.");
       }
     } catch (error: any) {
       console.error("Error saving profile:", error);
-      toast({
-        title: "Erreur",
-        description: error.response?.data?.message || "Une erreur est survenue lors de la sauvegarde.",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Une erreur est survenue lors de la sauvegarde.");
     } finally {
       setIsLoading(false);
     }
@@ -137,29 +126,29 @@ const PersonalInfoForm = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">Prénom</Label>
-          <Input
-            id="firstName"
-            value={formData.firstName}
-            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-            placeholder="Votre prénom"
-            className={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors ${errors.firstName ? "border-red-500" : ""}`}
-          />
-          {errors.firstName && <p className="text-sm text-red-600">{errors.firstName}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="firstName">Prénom</Label>
+            <Input
+              id="firstName"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              placeholder="Votre prénom"
+              className={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors ${errors.firstName ? "border-red-500" : ""}`}
+            />
+            {errors.firstName && <p className="text-sm text-red-600">{errors.firstName}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastName">Nom</Label>
+            <Input
+              id="lastName"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              placeholder="Votre nom"
+              className={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors ${errors.lastName ? "border-red-500" : ""}`}
+            />
+            {errors.lastName && <p className="text-sm text-red-600">{errors.lastName}</p>}
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Nom</Label>
-          <Input
-            id="lastName"
-            value={formData.lastName}
-            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-            placeholder="Votre nom"
-            className={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors ${errors.lastName ? "border-red-500" : ""}`}
-          />
-          {errors.lastName && <p className="text-sm text-red-600">{errors.lastName}</p>}
-        </div>
-      </div>
 
         <div className="space-y-2">
           <Label htmlFor="userEmail">Email</Label>
@@ -167,7 +156,7 @@ const PersonalInfoForm = () => {
             id="userEmail"
             type="email"
             value={formData.userEmail}
-            onChange={(e) => setFormData({...formData, userEmail: e.target.value})}
+            onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
             placeholder="votre.email@exemple.com"
             className={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors ${errors.userEmail ? "border-red-500" : ""}`}
           />
@@ -179,7 +168,7 @@ const PersonalInfoForm = () => {
           <PhoneInput
             defaultCountry="tn"
             value={formData.userPhone}
-            onChange={(phone) => setFormData({...formData, userPhone: phone})}
+            onChange={(phone) => setFormData({ ...formData, userPhone: phone })}
             inputClassName={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors ${errors.userPhone ? "border-red-500" : ""}`}
           />
           {errors.userPhone && <p className="text-sm text-red-600">{errors.userPhone}</p>}
@@ -191,7 +180,7 @@ const PersonalInfoForm = () => {
             <Input
               id="matricule"
               value={formData.matricule}
-              onChange={(e) => setFormData({...formData, matricule: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
               className={`h-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors ${errors.matricule ? "border-red-500" : ""}`}
             />
             {errors.matricule && <p className="text-sm text-red-600">{errors.matricule}</p>}

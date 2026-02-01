@@ -10,7 +10,7 @@ import {
   getAllConventions,
   UpdateConventionService,
 } from "@/services";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { Convention } from "./types";
 import { ArrowLeft, FileText, Edit3 } from "lucide-react";
 import { TailChase } from "ldrs/react";

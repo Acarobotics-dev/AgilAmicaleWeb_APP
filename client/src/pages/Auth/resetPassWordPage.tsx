@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import LoginPicture from "@/assests/AGILLoginPicture.webp";
 import { ResetPasswordService } from "@/services";
 import { Eye, EyeClosed } from "lucide-react";
@@ -11,7 +11,7 @@ import { Eye, EyeClosed } from "lucide-react";
 const ResetPasswordPage = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  // No local toast hook needed
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -75,11 +75,7 @@ const ResetPasswordPage = () => {
     if (!validateForm()) return;
 
     if (!token) {
-      toast({
-        title: "Erreur",
-        description: "Token invalide ou manquant.",
-        variant: "destructive",
-      });
+      toast.error("Token invalide ou manquant.");
       return;
     }
 
@@ -88,27 +84,14 @@ const ResetPasswordPage = () => {
       const response = await ResetPasswordService({ token, password });
 
       if (response.success) {
-        toast({
-          title: "Mot de passe réinitialisé",
-          description:
-            response.message ||
-            "Connectez-vous avec votre nouveau mot de passe.",
-        });
+        toast.success(response.message || "Connectez-vous avec votre nouveau mot de passe.");
         navigate("/login");
       } else {
-        toast({
-          title: "Erreur",
-          description: response.message || "Échec de la réinitialisation.",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Échec de la réinitialisation.");
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      toast({
-        title: "Erreur",
-        description: err.message || "Une erreur est survenue.",
-        variant: "destructive",
-      });
+      toast.error(err.message || "Une erreur est survenue.");
     } finally {
       setIsLoading(false);
     }
@@ -169,13 +152,12 @@ const ResetPasswordPage = () => {
               >
                 <div
                   style={{ width: `${(passwordStrength / 5) * 100}%` }}
-                  className={`h-2 rounded ${
-                    passwordStrength <= 2
+                  className={`h-2 rounded ${passwordStrength <= 2
                       ? "bg-red-500"
                       : passwordStrength <= 4
-                      ? "bg-yellow-400"
-                      : "bg-green-500"
-                  }`}
+                        ? "bg-yellow-400"
+                        : "bg-green-500"
+                    }`}
                   role="progressbar"
                   aria-valuenow={passwordStrength}
                   aria-valuemin={0}

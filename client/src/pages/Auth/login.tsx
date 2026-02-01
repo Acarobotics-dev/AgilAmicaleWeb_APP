@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import LoginPicture from "@/assests/AGILLoginPicture.webp";
 import { useState, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import { Eye, EyeClosed } from "lucide-react";
 import { TailChase } from "ldrs/react";
 import "ldrs/react/TailChase.css";
@@ -29,7 +29,7 @@ const ERROR_TYPES = {
 const Login = () => {
   const navigate = useNavigate();
   const { handleLoginUser } = useAuth();
-  const { toast } = useToast();
+  // No local toast hook needed
   const [userEmail, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -155,11 +155,7 @@ const Login = () => {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast({
-        variant: "destructive",
-        title: "Validation requise",
-        description: "Veuillez corriger les erreurs dans le formulaire",
-      });
+      toast.error("Veuillez corriger les erreurs dans le formulaire");
       return;
     }
 
@@ -174,10 +170,7 @@ const Login = () => {
 
       if (result?.success) {
         const user = result.user;
-        toast({
-          title: "Connexion réussie",
-          description: `Bienvenue ${user.firstName || ""}!`,
-        });
+        toast.success(`Bienvenue ${user.firstName || ""}!`);
 
         // Role-based redirection
         navigate(user.role === "adherent" ? "/home" : "/responsable/dashboard");
@@ -208,36 +201,20 @@ const Login = () => {
 
     switch (errorType) {
       case ERROR_TYPES.INVALID_CREDENTIALS:
-        toast({
-          variant: "destructive",
-          title: "Identifiants incorrects",
-          description: "Veuillez vérifier votre email et mot de passe",
-        });
+        toast.error("Veuillez vérifier votre email et mot de passe");
         break;
       case ERROR_TYPES.USER_NOT_FOUND:
-        toast({
-          variant: "destructive",
-          title: "Compte non trouvé",
-          description: "Aucun utilisateur avec cet email n'a été trouvé",
-        });
+        toast.error("Aucun utilisateur avec cet email n'a été trouvé");
         break;
       case ERROR_TYPES.CAPTCHA_FAILED:
-        toast({
-          variant: "destructive",
-          title: "Erreur de sécurité",
-          description: "La vérification CAPTCHA a échoué",
-        });
+        toast.error("La vérification CAPTCHA a échoué");
         setFormState((prev) => ({
           ...prev,
           captchaError: "Veuillez refaire la vérification CAPTCHA",
         }));
         break;
       default:
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: errorMessage,
-        });
+        toast.error(errorMessage);
     }
   };
 

@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TailChase } from "ldrs/react";
 import "ldrs/react/TailChase.css";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { X, ArrowLeft } from "lucide-react";
 import { Event } from "./types";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
@@ -13,7 +12,7 @@ import { AddBookingService, getAllEvents } from "@/services";
 import { BadgeEuro, User, Gift, CheckCircle2 } from "lucide-react";
 import { MapPin, Calendar, Clock, Users as UsersIcon, User as UserIcon, Bus, BedDouble, Building2, Dumbbell, Flag, Briefcase, Map as MapIcon } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 
 // Reusable components
 const ImageCarousel = ({ images, title }: { images: string[]; title: string }) => {
@@ -270,39 +269,48 @@ const EventTypeDetails = ({ event }: { event: Event }) => {
   );
 };
 
-const PricingCard = ({ pricing }: { pricing: Event["pricing"] }) => (
-  <Card className="mb-6 lg:mb-0">
-    <CardHeader>
-      <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-        <BadgeEuro className="w-5 h-5 text-yellow-600" />
-        Tarifs
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <BadgeEuro className="w-4 h-4 text-yellow-500" />
-          <span className="font-semibold">Prix d'adherent :</span>
-          <span className="ml-auto">{pricing?.basePrice || "N/A"} DT</span>
+const PricingCard = ({ event }: { event: Event }) => {
+  // Handle both old nested structure and new flat structure for backward compatibility
+  const basePrice = typeof event.pricing === 'object'
+    ? (event.pricing as any)?.basePrice
+    : event.pricing;
+  const companionPrice = event.cojoinPrice ?? (typeof event.pricing === 'object' ? (event.pricing as any)?.cojoinPrice : undefined);
+  const kidPrice = event.childPrice ?? (typeof event.pricing === 'object' ? (event.pricing as any)?.childPrice : undefined);
+
+  return (
+    <Card className="mb-6 lg:mb-0">
+      <CardHeader>
+        <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+          <BadgeEuro className="w-5 h-5 text-yellow-600" />
+          Tarifs
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <BadgeEuro className="w-4 h-4 text-yellow-500" />
+            <span className="font-semibold">Prix d'adherent :</span>
+            <span className="ml-auto">{basePrice || "N/A"} DT</span>
+          </div>
+          {(event.cojoinPresence || companionPrice) && companionPrice && (
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4 text-yellow-500" />
+              <span className="font-semibold">Prix accompagnant :</span>
+              <span className="ml-auto">{companionPrice} DT</span>
+            </div>
+          )}
+          {(event.childPresence || kidPrice) && kidPrice && (
+            <div className="flex items-center gap-2">
+              <Gift className="w-4 h-4 text-yellow-500" />
+              <span className="font-semibold">Prix enfant :</span>
+              <span className="ml-auto">{kidPrice} DT</span>
+            </div>
+          )}
         </div>
-        {pricing?.cojoinPrice && (
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-yellow-500" />
-            <span className="font-semibold">Prix accompagnant :</span>
-            <span className="ml-auto">{pricing.cojoinPrice} DT</span>
-          </div>
-        )}
-        {pricing?.childPrice && (
-          <div className="flex items-center gap-2">
-            <Gift className="w-4 h-4 text-yellow-500" />
-            <span className="font-semibold">Prix enfant :</span>
-            <span className="ml-auto">{pricing.childPrice} DT</span>
-          </div>
-        )}
-      </div>
-    </CardContent>
-  </Card>
-);
+      </CardContent>
+    </Card>
+  );
+};
 
 const IncludesCard = ({ includes }: { includes: string[] }) => (
   <Card>
@@ -348,12 +356,6 @@ export default function EventDetails() {
       return;
     }
 
-    // If pricing requires child or companion info, open dialog
-    if ((event.pricing?.childPrice && Number(event.pricing.childPrice) > 0) || (event.pricing?.cojoinPrice && Number(event.pricing.cojoinPrice) > 0)) {
-      setOpenParticipantsDialog(true);
-      return;
-    }
-
     try {
       const result = await AddBookingService(auth.user._id, event._id, event.type, eventDate, undefined);
 
@@ -381,7 +383,7 @@ export default function EventDetails() {
             userMessage = "Une erreur inattendue s'est produite.";
         }
 
-        toast.error(userMessage, { duration: 10000 });
+        toast.error(userMessage, { autoClose: 10000 });
         console.error("Booking error details:", error);
       }
     } catch (err) {
@@ -390,8 +392,7 @@ export default function EventDetails() {
     }
   }, [auth?.user?._id, event, eventDate, navigate]);
 
-  // Participants dialog state and fields
-  const [openParticipantsDialog, setOpenParticipantsDialog] = useState(false);
+  // Participants form fields
   const [childFirstName, setChildFirstName] = useState("");
   const [childLastName, setChildLastName] = useState("");
   const [childAge, setChildAge] = useState<number | null>(null);
@@ -403,14 +404,14 @@ export default function EventDetails() {
     if (!auth?.user?._id || !event) return;
 
     const participants: any[] = [];
-    if (event.pricing?.childPrice && Number(event.pricing.childPrice) > 0) {
+    if (event.childPresence && event.childPrice && Number(event.childPrice) > 0) {
       if (!childFirstName || !childLastName || childAge === null) {
         toast.error("Veuillez renseigner le nom, prénom et l'âge de l'enfant.");
         return;
       }
       participants.push({ firstName: childFirstName, lastName: childLastName, age: childAge, type: 'child' });
     }
-    if (event.pricing?.cojoinPrice && Number(event.pricing.cojoinPrice) > 0) {
+    if (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0) {
       if (!cojoinFirstName || !cojoinLastName || cojoinAge === null) {
         toast.error("Veuillez renseigner le nom, prénom et l'âge de l'accompagnant.");
         return;
@@ -422,10 +423,9 @@ export default function EventDetails() {
       const result = await AddBookingService(auth.user._id, event._id, event.type, eventDate, participants);
       if (result.success) {
         toast.success("Réservation effectuée avec succès !");
-        setOpenParticipantsDialog(false);
         setTimeout(() => navigate("/evenements"), 1200);
       } else {
-        toast.error(result.error?.message || "Erreur lors de la réservation", { duration: 8000 });
+        toast.error(result.error?.message || "Erreur lors de la réservation", { autoClose: 8000 });
       }
     } catch (err) {
       console.error(err);
@@ -474,9 +474,8 @@ export default function EventDetails() {
                 </span>
               )}
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  event.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                }`}
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${event.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  }`}
               >
                 {event.isActive ? "Actif" : "Inactif"}
               </span>
@@ -527,58 +526,93 @@ export default function EventDetails() {
               <CardHeader>
                 <CardTitle className="text-lg sm:text-xl text-center">Participer au {event.title}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Inline participant form - shows when child or companion pricing exists */}
+                {((event.childPresence && event.childPrice && Number(event.childPrice) > 0) ||
+                  (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0)) && (
+                    <div className="space-y-4 border-b pb-4">
+                      <p className="text-sm text-gray-600">
+                        Veuillez renseigner les informations demandées pour les tarifs enfants/accompagnants.
+                      </p>
+
+                      {event.childPresence && event.childPrice && Number(event.childPrice) > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <Gift className="w-4 h-4 text-yellow-600" />
+                            Informations de l'enfant
+                          </h4>
+                          <div className="grid grid-cols-1 gap-2">
+                            <input
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                              placeholder="Prénom"
+                              value={childFirstName}
+                              onChange={e => setChildFirstName(e.target.value)}
+                            />
+                            <input
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                              placeholder="Nom"
+                              value={childLastName}
+                              onChange={e => setChildLastName(e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                              placeholder="Âge"
+                              value={childAge ?? ''}
+                              onChange={e => setChildAge(Number(e.target.value))}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="font-semibold text-sm flex items-center gap-2">
+                            <User className="w-4 h-4 text-yellow-600" />
+                            Informations de l'accompagnant
+                          </h4>
+                          <div className="grid grid-cols-1 gap-2">
+                            <input
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                              placeholder="Prénom"
+                              value={cojoinFirstName}
+                              onChange={e => setCojoinFirstName(e.target.value)}
+                            />
+                            <input
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                              placeholder="Nom"
+                              value={cojoinLastName}
+                              onChange={e => setCojoinLastName(e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                              placeholder="Âge"
+                              value={cojoinAge ?? ''}
+                              onChange={e => setCojoinAge(Number(e.target.value))}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                {/* Submit button - shows different action based on whether participants are needed */}
                 <Button
                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-base sm:text-lg font-semibold"
-                  onClick={handleEventBooking}
+                  onClick={
+                    (event.childPresence && event.childPrice && Number(event.childPrice) > 0) ||
+                      (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0)
+                      ? submitParticipantsAndBook
+                      : handleEventBooking
+                  }
                 >
                   Participer
                 </Button>
               </CardContent>
-              <Dialog open={openParticipantsDialog} onOpenChange={setOpenParticipantsDialog}>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Informations complémentaires</DialogTitle>
-                    <DialogDescription>
-                      Veuillez renseigner les informations demandées pour les tarifs enfants/accompagnants.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="space-y-3 mt-2">
-                    {event.pricing?.childPrice && Number(event.pricing.childPrice) > 0 && (
-                      <div>
-                        <h4 className="font-semibold">Informations de l'enfant</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                          <input className="input" placeholder="Prénom" value={childFirstName} onChange={e => setChildFirstName(e.target.value)} />
-                          <input className="input" placeholder="Nom" value={childLastName} onChange={e => setChildLastName(e.target.value)} />
-                          <input type="number" className="input" placeholder="Âge" value={childAge ?? ''} onChange={e => setChildAge(Number(e.target.value))} />
-                        </div>
-                      </div>
-                    )}
-
-                    {event.pricing?.cojoinPrice && Number(event.pricing.cojoinPrice) > 0 && (
-                      <div>
-                        <h4 className="font-semibold">Informations de l'accompagnant</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                          <input className="input" placeholder="Prénom" value={cojoinFirstName} onChange={e => setCojoinFirstName(e.target.value)} />
-                          <input className="input" placeholder="Nom" value={cojoinLastName} onChange={e => setCojoinLastName(e.target.value)} />
-                          <input type="number" className="input" placeholder="Âge" value={cojoinAge ?? ''} onChange={e => setCojoinAge(Number(e.target.value))} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <DialogFooter>
-                    <div className="flex gap-2 w-full">
-                      <Button variant="ghost" onClick={() => setOpenParticipantsDialog(false)}>Annuler</Button>
-                      <Button className="ml-auto" onClick={submitParticipantsAndBook}>Confirmer et réserver</Button>
-                    </div>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </Card>
 
-            {event.pricing && <PricingCard pricing={event.pricing} />}
+            {event.pricing && <PricingCard event={event} />}
 
             {event.includes && event.includes.length > 0 && <IncludesCard includes={event.includes} />}
           </div>

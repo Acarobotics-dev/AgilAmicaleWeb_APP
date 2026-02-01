@@ -142,9 +142,8 @@ const createBooking = async (req, res, next) => {
 
       // Validate required participant info according to event pricing
       try {
-        const pricing = event.pricing || {};
-        // If childPrice is provided (and greater than 0) require at least one child participant
-        if (pricing.childPrice && Number(pricing.childPrice) > 0) {
+        // If childPresence is enabled, require at least one child participant
+        if (event.childPresence && event.childPrice && Number(event.childPrice) > 0) {
           const childParticipants = participants.filter(p => String(p.type).toLowerCase() === 'child');
           if (!childParticipants.length) {
             return res.status(400).json({
@@ -176,8 +175,8 @@ const createBooking = async (req, res, next) => {
           }
         }
 
-        // If cojoinPrice is provided (and greater than 0) require at least one cojoint participant
-        if (pricing.cojoinPrice && Number(pricing.cojoinPrice) > 0) {
+        // If cojoinPresence is enabled, require at least one companion participant
+        if (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0) {
           const cojoinParticipants = participants.filter(p => String(p.type).toLowerCase() === 'cojoint' || String(p.type).toLowerCase() === 'companion');
           if (!cojoinParticipants.length) {
             return res.status(400).json({

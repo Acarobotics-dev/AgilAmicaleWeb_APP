@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useCallback, useContext } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "react-toastify";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Services
@@ -89,7 +89,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     password: "",
     confirmPassword: "",
   });
-  const { toast } = useToast();
+  // No local toast hook needed, just use import
 
   const checkAuthUser = useCallback(async () => {
     try {
@@ -110,58 +110,50 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     checkAuthUser();
   }, [checkAuthUser]);
 
-const handleLoginUser = useCallback(
-  async ({ userEmail, password, hCaptchaToken }: LoginParams): Promise<LoginResult> => {
-    const formData = { userEmail, password, hCaptchaToken };  // Include token in formData
+  const handleLoginUser = useCallback(
+    async ({ userEmail, password, hCaptchaToken }: LoginParams): Promise<LoginResult> => {
+      const formData = { userEmail, password, hCaptchaToken };  // Include token in formData
 
-    try {
-      const data = await loginService(formData);
+      try {
+        const data = await loginService(formData);
 
-      if (data.success) {
-        sessionStorage.setItem(
-          "accessToken",
-          JSON.stringify(data.data.accessToken)
-        );
-        setAuth({ authenticate: true, user: data.data.user });
+        if (data.success) {
+          sessionStorage.setItem(
+            "accessToken",
+            JSON.stringify(data.data.accessToken)
+          );
+          setAuth({ authenticate: true, user: data.data.user });
 
-        setTimeout(() => checkAuthUser(), 0);
+          setTimeout(() => checkAuthUser(), 0);
 
-        return {
-          success: true,
-          user: data.data.user,
-          message: data.message
-        };
-      } else {
-        const message = data.message || "Login failed. Please try again.";
-        toast({
-          title: "Erreur",
-          description: message,
-          variant: "destructive",
-        });
+          return {
+            success: true,
+            user: data.data.user,
+            message: data.message
+          };
+        } else {
+          const message = data.message || "Login failed. Please try again.";
+          toast.error(message);
+          return {
+            success: false,
+            message,
+            type: data.type // Pass through error type
+          };
+        }
+      } catch (error: any) {
+        const message =
+          error.response?.data?.message ||
+          "An error occurred during login. Please try again.";
+        toast.error(message);
         return {
           success: false,
           message,
-          type: data.type // Pass through error type
+          type: error.response?.data?.type
         };
       }
-    } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        "An error occurred during login. Please try again.";
-      toast({
-        title: "Erreur",
-        description: message,
-        variant: "destructive",
-      });
-      return {
-        success: false,
-        message,
-        type: error.response?.data?.type
-      };
-    }
-  },
-  [checkAuthUser, toast]
-);
+    },
+    [checkAuthUser]
+  );
 
   const handleRegisterUser = useCallback(
     async (signUpFormData: SignUpFormData) => {
@@ -188,7 +180,7 @@ const handleLoginUser = useCallback(
             confirmPassword: "",
           });
         } else {
-        console.warn("Registration failed.");
+          console.warn("Registration failed.");
 
         }
         return data;

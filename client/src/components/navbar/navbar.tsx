@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { toast } from "react-toastify";
 import { NavMenu } from "./nav-menu";
 import { NavigationSheet } from "./navigation-sheet";
 import { Link, useNavigate } from "react-router-dom";
@@ -29,30 +30,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 
 const NavbarSection = () => {
   const { auth, resetCredentials } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleLogout = async () => {
     try {
       sessionStorage.clear();
       await resetCredentials();
-      toast({
-        title: "Déconnecté",
-        description: "Vous avez été déconnecté avec succès.",
-        variant: "default",
-      });
+      toast.success("Vous avez été déconnecté avec succès.");
       navigate("/");
     } catch (error) {
       console.error("Error during logout:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de vous déconnecter pour le moment.",
-        variant: "destructive",
-      });
+      toast.error("Impossible de vous déconnecter pour le moment.");
     }
   };
 

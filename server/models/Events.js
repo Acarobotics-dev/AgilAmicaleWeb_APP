@@ -42,22 +42,28 @@ const commonEventSchema = new mongoose.Schema({
   },
 
   pricing: {
-    basePrice: {
       type: Number,
       required: [true, "Le prix est obligatoire"],
       min: [0, "Le prix ne peut pas être négatif"],
+  },
+  cojoinPresence:{
+    type : Boolean,
+    default : false
+  },
+  cojoinPrice: {
+    type: Number,
+    default: function () {
+      return this.pricing;
     },
-    cojoinPrice: {
-      type: Number,
-      default: function () {
-        return this.pricing.basePrice;
-      },
-    },
-    childPrice: {
-      type: Number,
-      default: function () {
-        return this.pricing.basePrice;
-      },
+  },
+  childPresence :{
+    type : Boolean ,
+    default : false,
+  },
+  childPrice: {
+    type: Number,
+    default: function () {
+      return this.pricing;
     },
   },
   includes: {

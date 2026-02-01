@@ -158,19 +158,11 @@ const createEvent = async (req, res, next) => {
       featuredPhoto: eventPhotos[0] || null,
       numberOfCompanions: req.body.numberOfCompanions || 0,
       numberOfChildren: req.body.numberOfChildren || 0,
-      pricing: {
-        basePrice: parsedPricing?.basePrice || req.body.basePrice,
-        cojoinPrice:
-          parsedPricing?.cojoinPrice ||
-          req.body.cojoinPrice ||
-          parsedPricing?.basePrice ||
-          req.body.basePrice,
-        childPrice:
-          parsedPricing?.childPrice ||
-          req.body.childPrice ||
-          parsedPricing?.basePrice ||
-          req.body.basePrice,
-      },
+      pricing: parsedPricing?.basePrice || req.body.basePrice || req.body.pricing,
+      cojoinPresence: req.body.cojoinPresence === true || req.body.cojoinPresence === "true",
+      cojoinPrice: req.body.cojoinPrice || parsedPricing?.cojoinPrice,
+      childPresence: req.body.childPresence === true || req.body.childPresence === "true",
+      childPrice: req.body.childPrice || parsedPricing?.childPrice,
       includes: parseArray(includes || req.body.includes),
       maxParticipants: parsedMaxParticipants,
       currentParticipants,
@@ -426,9 +418,15 @@ const updateEvent = async (req, res, next) => {
     event.isFeatured = req.body.isFeatured !== undefined ? (req.body.isFeatured === true || req.body.isFeatured === "true") : event.isFeatured;
 
     // --- Pricing ---
-    event.pricing.basePrice = req.body.basePrice || event.pricing.basePrice;
-    event.pricing.cojoinPrice = req.body.cojoinPrice || event.pricing.cojoinPrice || event.pricing.basePrice;
-    event.pricing.childPrice = req.body.childPrice || event.pricing.childPrice || event.pricing.basePrice;
+    event.pricing = req.body.basePrice || req.body.pricing || event.pricing;
+    event.cojoinPresence = req.body.cojoinPresence !== undefined
+      ? (req.body.cojoinPresence === true || req.body.cojoinPresence === "true")
+      : event.cojoinPresence;
+    event.cojoinPrice = req.body.cojoinPrice || event.cojoinPrice;
+    event.childPresence = req.body.childPresence !== undefined
+      ? (req.body.childPresence === true || req.body.childPresence === "true")
+      : event.childPresence;
+    event.childPrice = req.body.childPrice || event.childPrice;
 
     // --- Includes (optional) ---
     let includesArr = req.body.includes;

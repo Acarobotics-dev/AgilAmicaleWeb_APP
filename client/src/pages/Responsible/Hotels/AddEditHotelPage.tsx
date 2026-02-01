@@ -10,7 +10,7 @@ import {
   getAllHotelsService,
   UpdateHotelService,
 } from "@/services";
-import { toast } from "sonner";
+import { toast } from "react-toastify";
 import { Hotel } from "./types";
 import {
   ArrowLeft,
@@ -25,7 +25,7 @@ export function AddEditHotelPage() {
   const navigate = useNavigate();
   const params = useParams();
   const { id } = params; // Change to "id" to match the route parameter
-  
+
   const isEditMode = Boolean(id && id !== "add");
 
   const [initialData, setInitialData] = useState<Hotel | null>(null);
@@ -45,7 +45,7 @@ export function AddEditHotelPage() {
   useEffect(() => {
     if (isEditMode && hotels.length > 0 && id) {
       const hotel = hotels.find((h: Hotel) => h._id === id);
-      
+
       if (hotel) {
         setInitialData(hotel);
       } else {
@@ -191,4 +191,3 @@ export function AddEditHotelPage() {
     </SidebarProvider>
   );
 }
-                  
