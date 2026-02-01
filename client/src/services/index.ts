@@ -248,17 +248,21 @@ export async function AddBookingService(
   userId: string,
   activity: string, // Expecting activity ID as string
   activityCategory: string,
-  bookingPeriod: { start: Date; end: Date }
+  bookingPeriod: { start: Date; end: Date } | null,
+  participants?: Array<{ firstName: string; lastName: string; age: number; type?: string }>
 ): Promise<{ success: boolean; data?: any; error?: BookingError }> {
   try {
     const response = await axiosInstance.post("/responsible/booking/Add", {
       userId,
       activity,
       activityCategory,
-      bookingPeriod: {
-        start: bookingPeriod.start.toISOString(),
-        end: bookingPeriod.end.toISOString(),
-      },
+      bookingPeriod: bookingPeriod
+        ? {
+            start: bookingPeriod.start.toISOString(),
+            end: bookingPeriod.end.toISOString(),
+          }
+        : null,
+      participants,
     });
 
     return {

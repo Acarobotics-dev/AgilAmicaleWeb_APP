@@ -26,6 +26,17 @@ const BookingSchema = new mongoose.Schema(
     bookingPeriod: {
       type: { start: Date, end: Date },
     },
+    participants: {
+      type: [
+        {
+          firstName: { type: String, required: true },
+          lastName: { type: String, required: true },
+          age: { type: Number, required: true, min: 0 },
+          type: { type: String, enum: ["adult", "child", "cojoint"], default: "adult" },
+        },
+      ],
+      default: [],
+    },
     status: {
       type: String,
       enum: ["en attente", "confirmé", "annulé", "terminé"],

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TailChase } from "ldrs/react";
 import "ldrs/react/TailChase.css";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { X, ArrowLeft } from "lucide-react";
 import { Event } from "./types";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
@@ -347,8 +348,14 @@ export default function EventDetails() {
       return;
     }
 
+    // If pricing requires child or companion info, open dialog
+    if ((event.pricing?.childPrice && Number(event.pricing.childPrice) > 0) || (event.pricing?.cojoinPrice && Number(event.pricing.cojoinPrice) > 0)) {
+      setOpenParticipantsDialog(true);
+      return;
+    }
+
     try {
-      const result = await AddBookingService(auth.user._id, event._id, event.type, eventDate);
+      const result = await AddBookingService(auth.user._id, event._id, event.type, eventDate, undefined);
 
       if (result.success) {
         toast.success("Réservation effectuée avec succès !");
@@ -382,6 +389,49 @@ export default function EventDetails() {
       toast.error("Une erreur s'est produite lors de la réservation.");
     }
   }, [auth?.user?._id, event, eventDate, navigate]);
+
+  // Participants dialog state and fields
+  const [openParticipantsDialog, setOpenParticipantsDialog] = useState(false);
+  const [childFirstName, setChildFirstName] = useState("");
+  const [childLastName, setChildLastName] = useState("");
+  const [childAge, setChildAge] = useState<number | null>(null);
+  const [cojoinFirstName, setCojoinFirstName] = useState("");
+  const [cojoinLastName, setCojoinLastName] = useState("");
+  const [cojoinAge, setCojoinAge] = useState<number | null>(null);
+
+  const submitParticipantsAndBook = async () => {
+    if (!auth?.user?._id || !event) return;
+
+    const participants: any[] = [];
+    if (event.pricing?.childPrice && Number(event.pricing.childPrice) > 0) {
+      if (!childFirstName || !childLastName || childAge === null) {
+        toast.error("Veuillez renseigner le nom, prénom et l'âge de l'enfant.");
+        return;
+      }
+      participants.push({ firstName: childFirstName, lastName: childLastName, age: childAge, type: 'child' });
+    }
+    if (event.pricing?.cojoinPrice && Number(event.pricing.cojoinPrice) > 0) {
+      if (!cojoinFirstName || !cojoinLastName || cojoinAge === null) {
+        toast.error("Veuillez renseigner le nom, prénom et l'âge de l'accompagnant.");
+        return;
+      }
+      participants.push({ firstName: cojoinFirstName, lastName: cojoinLastName, age: cojoinAge, type: 'cojoint' });
+    }
+
+    try {
+      const result = await AddBookingService(auth.user._id, event._id, event.type, eventDate, participants);
+      if (result.success) {
+        toast.success("Réservation effectuée avec succès !");
+        setOpenParticipantsDialog(false);
+        setTimeout(() => navigate("/evenements"), 1200);
+      } else {
+        toast.error(result.error?.message || "Erreur lors de la réservation", { duration: 8000 });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Une erreur est survenue.");
+    }
+  };
 
   useEffect(() => {
     const fetchEventDetails = async (eventId: string | undefined) => {
@@ -485,6 +535,47 @@ export default function EventDetails() {
                   Participer
                 </Button>
               </CardContent>
+              <Dialog open={openParticipantsDialog} onOpenChange={setOpenParticipantsDialog}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Informations complémentaires</DialogTitle>
+                    <DialogDescription>
+                      Veuillez renseigner les informations demandées pour les tarifs enfants/accompagnants.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-3 mt-2">
+                    {event.pricing?.childPrice && Number(event.pricing.childPrice) > 0 && (
+                      <div>
+                        <h4 className="font-semibold">Informations de l'enfant</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          <input className="input" placeholder="Prénom" value={childFirstName} onChange={e => setChildFirstName(e.target.value)} />
+                          <input className="input" placeholder="Nom" value={childLastName} onChange={e => setChildLastName(e.target.value)} />
+                          <input type="number" className="input" placeholder="Âge" value={childAge ?? ''} onChange={e => setChildAge(Number(e.target.value))} />
+                        </div>
+                      </div>
+                    )}
+
+                    {event.pricing?.cojoinPrice && Number(event.pricing.cojoinPrice) > 0 && (
+                      <div>
+                        <h4 className="font-semibold">Informations de l'accompagnant</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          <input className="input" placeholder="Prénom" value={cojoinFirstName} onChange={e => setCojoinFirstName(e.target.value)} />
+                          <input className="input" placeholder="Nom" value={cojoinLastName} onChange={e => setCojoinLastName(e.target.value)} />
+                          <input type="number" className="input" placeholder="Âge" value={cojoinAge ?? ''} onChange={e => setCojoinAge(Number(e.target.value))} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <DialogFooter>
+                    <div className="flex gap-2 w-full">
+                      <Button variant="ghost" onClick={() => setOpenParticipantsDialog(false)}>Annuler</Button>
+                      <Button className="ml-auto" onClick={submitParticipantsAndBook}>Confirmer et réserver</Button>
+                    </div>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </Card>
 
             {event.pricing && <PricingCard pricing={event.pricing} />}

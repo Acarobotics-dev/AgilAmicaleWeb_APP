@@ -94,12 +94,16 @@ const createBooking = async (req, res, next) => {
       });
     }
 
+    // Participants (optional) - expect array of { firstName, lastName, age, type }
+    const participants = Array.isArray(req.body.participants) ? req.body.participants : [];
+
     // Save booking
     const booking = new Booking({
       userId,
       activity,
       activityCategory,
       activityModel,
+      participants,
       ...(activityModel === "House" ? { bookingPeriod: period } : {}),
     });
 
@@ -134,6 +138,77 @@ const createBooking = async (req, res, next) => {
           errorType: "event_full",
           errorCode: "BOOKING_008",
         });
+      }
+
+      // Validate required participant info according to event pricing
+      try {
+        const pricing = event.pricing || {};
+        // If childPrice is provided (and greater than 0) require at least one child participant
+        if (pricing.childPrice && Number(pricing.childPrice) > 0) {
+          const childParticipants = participants.filter(p => String(p.type).toLowerCase() === 'child');
+          if (!childParticipants.length) {
+            return res.status(400).json({
+              success: false,
+              message: "Les informations de l'enfant sont requises pour ce tarif.",
+              errorType: "missing_child_info",
+              errorCode: "BOOKING_009",
+            });
+          }
+          // validate each child participant
+          for (const c of childParticipants) {
+            if (!c.firstName || !c.lastName || (typeof c.age === 'undefined' || c.age === null)) {
+              return res.status(400).json({
+                success: false,
+                message: "Chaque enfant doit avoir un prénom, nom et âge.",
+                errorType: "invalid_child_info",
+                errorCode: "BOOKING_010",
+              });
+            }
+          }
+          // Optionally enforce max number of children
+          if (typeof event.numberOfChildren === 'number' && childParticipants.length > event.numberOfChildren) {
+            return res.status(400).json({
+              success: false,
+              message: `Nombre d'enfants dépassé (max ${event.numberOfChildren}).`,
+              errorType: "too_many_children",
+              errorCode: "BOOKING_011",
+            });
+          }
+        }
+
+        // If cojoinPrice is provided (and greater than 0) require at least one cojoint participant
+        if (pricing.cojoinPrice && Number(pricing.cojoinPrice) > 0) {
+          const cojoinParticipants = participants.filter(p => String(p.type).toLowerCase() === 'cojoint' || String(p.type).toLowerCase() === 'companion');
+          if (!cojoinParticipants.length) {
+            return res.status(400).json({
+              success: false,
+              message: "Les informations de l'accompagnant sont requises pour ce tarif.",
+              errorType: "missing_cojoin_info",
+              errorCode: "BOOKING_012",
+            });
+          }
+          for (const a of cojoinParticipants) {
+            if (!a.firstName || !a.lastName || (typeof a.age === 'undefined' || a.age === null)) {
+              return res.status(400).json({
+                success: false,
+                message: "Chaque accompagnant doit avoir un prénom, nom et âge.",
+                errorType: "invalid_cojoin_info",
+                errorCode: "BOOKING_013",
+              });
+            }
+          }
+          if (typeof event.numberOfCompanions === 'number' && cojoinParticipants.length > event.numberOfCompanions) {
+            return res.status(400).json({
+              success: false,
+              message: `Nombre d'accompagnants dépassé (max ${event.numberOfCompanions}).`,
+              errorType: "too_many_cojoin",
+              errorCode: "BOOKING_014",
+            });
+          }
+        }
+      } catch (validationErr) {
+        console.error('Participant validation failed:', validationErr);
+        return res.status(400).json({ success: false, message: 'Erreur de validation des participants.' });
       }
 
       // Set booking period from event dates
