@@ -9,7 +9,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { Dispatch, SetStateAction } from "react";
 
@@ -50,6 +50,8 @@ export default function GallerySection({
                         />
                       </DialogTrigger>
                       <DialogContent className="p-0 bg-transparent border-none flex items-center justify-center">
+                        <DialogTitle className="sr-only">Vue agrandie de l'image</DialogTitle>
+                        <DialogDescription className="sr-only">{title} - Photo {idx + 1}</DialogDescription>
                         <img
                           src={`${import.meta.env.VITE_API_BASE_URL}/${img}`}
                           alt={`${title} - ${idx + 1}`}

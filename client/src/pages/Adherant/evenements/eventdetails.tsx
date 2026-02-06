@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TailChase } from "ldrs/react";
 import "ldrs/react/TailChase.css";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { X, ArrowLeft } from "lucide-react";
 import { Event } from "./types";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
@@ -38,6 +38,8 @@ const ImageCarousel = ({ images, title }: { images: string[]; title: string }) =
                         />
                       </DialogTrigger>
                       <DialogContent className="p-0 bg-transparent border-none flex items-center justify-center">
+                        <DialogTitle className="sr-only">Vue agrandie de l'image</DialogTitle>
+                        <DialogDescription className="sr-only">{title} - Photo {idx + 1}</DialogDescription>
                         <img
                           src={`${import.meta.env.VITE_API_BASE_URL}/${img}`}
                           alt={`${title} - ${idx + 1}`}

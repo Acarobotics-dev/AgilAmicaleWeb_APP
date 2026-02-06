@@ -160,6 +160,11 @@ const evenementSchema = new mongoose.Schema({
   // Évènement-specific fields
   eventTime: { type: String, required: true },
   organizer: { type: String, required: true },
+  location: { type: String, required: true },
+  program: {
+    type: [String],
+    default: [],
+  },
 });
 
 // Base Event model

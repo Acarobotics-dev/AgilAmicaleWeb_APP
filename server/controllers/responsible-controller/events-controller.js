@@ -74,7 +74,6 @@ const createEvent = async (req, res, next) => {
       location,
       equipmentProvided,
       // Évènement
-      eventDate, // <-- will be ignored
       eventTime,
       organizer,
       program,
@@ -233,6 +232,7 @@ const createEvent = async (req, res, next) => {
         Object.assign(eventData, {
           eventTime,
           organizer,
+          location,
           program: parseArray(program || req.body.program),
         });
         break;
@@ -488,6 +488,7 @@ const updateEvent = async (req, res, next) => {
         // use common startDate/endDate (no per-type date field)
         event.eventTime = req.body.eventTime || event.eventTime;
         event.organizer = req.body.organizer || event.organizer;
+        event.location = req.body.location || event.location;
         event.program = parseArray(req.body.program || event.program);
         break;
 

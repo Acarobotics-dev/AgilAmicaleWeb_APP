@@ -230,6 +230,8 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
       location: (initialData as any)?.location || "",
       eventTime: (initialData as any)?.eventTime || "",
       organizer: (initialData as any)?.organizer || "",
+      program: (initialData as any)?.program?.join(", ") || "",
+      equipmentProvided: (initialData as any)?.equipmentProvided?.join(", ") || "",
     },
   })
 
@@ -260,6 +262,14 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
       commonFields.forEach(field => {
         if (values[field] !== undefined && values[field] !== null) formData.append(field, values[field].toString())
       })
+
+      // Map companions and children counts
+      if (values.companionsCount) formData.append("numberOfCompanions", values.companionsCount.toString())
+      if (values.childrenCount) formData.append("numberOfChildren", values.childrenCount.toString())
+
+      // Auto-set presence based on price availability
+      formData.append("cojoinPresence", (Number(values.cojoinPrice) > 0).toString())
+      formData.append("childPresence", (Number(values.childPrice) > 0).toString())
 
       // Dates
       if (values.startDate) formData.append("startDate", format(values.startDate, "yyyy-MM-dd"))
@@ -323,11 +333,27 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
           if (values.sportType) formData.append("sportType", values.sportType)
           if (values.duration) formData.append("durationMinutes", values.duration)
           if (values.location) formData.append("location", values.location)
+          if (values.equipmentProvided) {
+            if (typeof values.equipmentProvided === 'string') {
+              const equip = values.equipmentProvided.split(",").map((v: string) => v.trim()).filter(Boolean)
+              formData.append("equipmentProvided", JSON.stringify(equip))
+            } else if (Array.isArray(values.equipmentProvided)) {
+              formData.append("equipmentProvided", JSON.stringify(values.equipmentProvided))
+            }
+          }
           break
         case "Évènement":
           if (values.location) formData.append("location", values.location)
           if (values.eventTime) formData.append("eventTime", values.eventTime)
           if (values.organizer) formData.append("organizer", values.organizer)
+          if (values.program) {
+            if (typeof values.program === 'string') {
+              const prog = values.program.split(",").map((v: string) => v.trim()).filter(Boolean)
+              formData.append("program", JSON.stringify(prog))
+            } else if (Array.isArray(values.program)) {
+              formData.append("program", JSON.stringify(values.program))
+            }
+          }
           break
       }
 
@@ -576,6 +602,17 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="equipmentProvided"
+              render={({ field }) => (
+                <FormItem className="col-span-1 md:col-span-2">
+                  <FormLabel>Équipement fourni (liste séparée par des virgules)</FormLabel>
+                  <FormControl><Input placeholder="Ex: Raquettes, Ballons, Tapis" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         )
 
@@ -609,6 +646,17 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
                 <FormItem>
                   <FormLabel>Organisateur</FormLabel>
                   <FormControl><Input placeholder="Nom de l'organisateur" {...field} /></FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="program"
+              render={({ field }) => (
+                <FormItem className="col-span-1 md:col-span-2">
+                  <FormLabel>Programme (liste séparée par des virgules)</FormLabel>
+                  <FormControl><Input placeholder="Ex: Accueil, Conférence, Buffet" {...field} /></FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

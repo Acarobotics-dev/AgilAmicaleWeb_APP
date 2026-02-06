@@ -341,6 +341,7 @@ export default function HotelList() {
                   <DialogTitle className="text-xl font-bold text-gray-800">
                     {hotel.title}
                   </DialogTitle>
+                  <DialogDescription className="sr-only">Détails de l'hôtel partenaire.</DialogDescription>
                   <div className="flex gap-2 mt-2">
                     <Badge className="bg-yellow-100 text-yellow-800">Partenaire</Badge>
                     <Badge className="bg-blue-100 text-blue-800">Hôtel</Badge>

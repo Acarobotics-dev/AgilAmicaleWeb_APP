@@ -262,6 +262,7 @@ export function ConventionsSection() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{selectedConvention?.title}</DialogTitle>
+            <DialogDescription>Détails de la convention sélectionnée.</DialogDescription>
           </DialogHeader>
           {selectedConvention && (
             <ScrollArea className="max-h-[70vh]">
