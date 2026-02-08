@@ -41,7 +41,11 @@ const createEvent = async (req, res, next) => {
       type,
       description,
       images,
-      pricing,
+      basePrice,
+      cojoinPresence,
+      cojoinPrice,
+      childPresence,
+      childPrice,
       includes,
       maxParticipants,
       currentParticipants,
@@ -78,7 +82,7 @@ const createEvent = async (req, res, next) => {
       organizer,
       program,
     } = req.body;
-
+    console.log(req.body);
     // Validate input
     const validationErrors = validateEventInput(req.body);
     if (validationErrors) {
@@ -94,22 +98,6 @@ const createEvent = async (req, res, next) => {
         success: false,
         message: 'startDate and endDate are required for events',
       });
-    }
-
-    // Parse pricing if sent as string
-    let parsedPricing = pricing;
-    if (typeof pricing === "string") {
-      try {
-        parsedPricing = JSON.parse(pricing);
-      } catch {
-        parsedPricing = {};
-      }
-    } else if (!parsedPricing && typeof req.body.pricing === "string") {
-      try {
-        parsedPricing = JSON.parse(req.body.pricing);
-      } catch {
-        parsedPricing = {};
-      }
     }
 
     // Normalize booleans and numbers
@@ -155,14 +143,12 @@ const createEvent = async (req, res, next) => {
       description,
       images: eventPhotos,
       featuredPhoto: eventPhotos[0] || null,
-      numberOfCompanions: req.body.numberOfCompanions || 0,
-      numberOfChildren: req.body.numberOfChildren || 0,
-      pricing: parsedPricing?.basePrice || req.body.basePrice || req.body.pricing,
-      cojoinPresence: req.body.cojoinPresence === true || req.body.cojoinPresence === "true",
-      cojoinPrice: req.body.cojoinPrice || parsedPricing?.cojoinPrice,
-      childPresence: req.body.childPresence === true || req.body.childPresence === "true",
-      childPrice: req.body.childPrice || parsedPricing?.childPrice,
-      includes: parseArray(includes || req.body.includes),
+      basePrice: basePrice || 0,
+      cojoinPresence: cojoinPresence === true || cojoinPresence === "true",
+      cojoinPrice: (cojoinPresence === true || cojoinPresence === "true") && cojoinPrice !== "" ? Number(cojoinPrice) : undefined,
+      childPresence: childPresence === true || childPresence === "true",
+      childPrice: (childPresence === true || childPresence === "true") && childPrice !== "" ? Number(childPrice) : undefined,
+      includes: parseArray(includes),
       maxParticipants: parsedMaxParticipants,
       currentParticipants,
       isActive: parsedIsActive,
@@ -409,24 +395,38 @@ const updateEvent = async (req, res, next) => {
     // Ensure startDate/endDate are updated if provided
     event.startDate = req.body.startDate || event.startDate;
     event.endDate = req.body.endDate || event.endDate;
-    // Number of companions and children
-    event.numberOfCompanions = req.body.numberOfCompanions !== undefined ? Number(req.body.numberOfCompanions) : event.numberOfCompanions;
-    event.numberOfChildren = req.body.numberOfChildren !== undefined ? Number(req.body.numberOfChildren) : event.numberOfChildren;
     event.maxParticipants = req.body.maxParticipants || event.maxParticipants;
     event.currentParticipants = req.body.currentParticipants || event.currentParticipants;
     event.isActive = req.body.isActive !== undefined ? (req.body.isActive === true || req.body.isActive === "true") : event.isActive;
     event.isFeatured = req.body.isFeatured !== undefined ? (req.body.isFeatured === true || req.body.isFeatured === "true") : event.isFeatured;
 
     // --- Pricing ---
-    event.pricing = req.body.basePrice || req.body.pricing || event.pricing;
-    event.cojoinPresence = req.body.cojoinPresence !== undefined
+    event.basePrice = req.body.basePrice || event.basePrice;
+    const updatedCojoinPresence = req.body.cojoinPresence !== undefined
       ? (req.body.cojoinPresence === true || req.body.cojoinPresence === "true")
       : event.cojoinPresence;
-    event.cojoinPrice = req.body.cojoinPrice || event.cojoinPrice;
-    event.childPresence = req.body.childPresence !== undefined
+    event.cojoinPresence = updatedCojoinPresence;
+
+    if (updatedCojoinPresence) {
+      if (req.body.cojoinPrice !== undefined && req.body.cojoinPrice !== "") {
+        event.cojoinPrice = Number(req.body.cojoinPrice);
+      }
+    } else {
+      event.cojoinPrice = event.basePrice;
+    }
+
+    const updatedChildPresence = req.body.childPresence !== undefined
       ? (req.body.childPresence === true || req.body.childPresence === "true")
       : event.childPresence;
-    event.childPrice = req.body.childPrice || event.childPrice;
+    event.childPresence = updatedChildPresence;
+
+    if (updatedChildPresence) {
+      if (req.body.childPrice !== undefined && req.body.childPrice !== "") {
+        event.childPrice = Number(req.body.childPrice);
+      }
+    } else {
+      event.childPrice = event.basePrice;
+    }
 
     // --- Includes (optional) ---
     let includesArr = req.body.includes;

@@ -42,6 +42,8 @@ import { useCallback, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import ImageUploader from "@/components/common/ImagesUploader"
 import { toast } from "react-toastify"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { eventFormSchema, type EventFormValues } from "./eventFormSchema"
 
 // Modern SaaS-style Constants (No Emojis)
 const EVENT_TYPES = [
@@ -194,7 +196,8 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
   const [newImages, setNewImages] = useState<File[]>([])
   const [removedImages, setRemovedImages] = useState<string[]>([])
 
-  const form = useForm({
+  const form = useForm<EventFormValues>({
+    resolver: zodResolver(eventFormSchema),
     defaultValues: {
       title: initialData?.title || "",
       type: initialData?.type || "Excursion", // Default to Excursion if new
@@ -202,7 +205,9 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
       images: [] as File[],
       featuredPhoto: initialData?.featuredPhoto || "",
       basePrice: (initialData?.pricing as any)?.basePrice?.toString() || initialData?.pricing?.toString() || "",
+      cojoinPresence: initialData?.cojoinPresence || false,
       cojoinPrice: (initialData?.pricing as any)?.cojoinPrice?.toString() || initialData?.cojoinPrice?.toString() || "",
+      childPresence: initialData?.childPresence || false,
       childPrice: (initialData?.pricing as any)?.childPrice?.toString() || initialData?.childPrice?.toString() || "",
       companionsCount: (initialData as any)?.companionsCount?.toString() || "",
       childrenCount: (initialData as any)?.childrenCount?.toString() || "",
@@ -257,32 +262,22 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
       // Common fields
       const commonFields = [
         "title", "type", "description", "featuredPhoto",
-        "maxParticipants", "currentParticipants", "isActive", "isFeatured"
+        "maxParticipants", "currentParticipants", "isActive", "isFeatured",
+        "basePrice", "cojoinPresence", "cojoinPrice", "childPresence", "childPrice"
       ]
       commonFields.forEach(field => {
-        if (values[field] !== undefined && values[field] !== null) formData.append(field, values[field].toString())
+        if (values[field] !== undefined && values[field] !== null) {
+          formData.append(field, values[field].toString())
+        }
       })
 
-      // Map companions and children counts
+      // Map companions and children counts (if still needed by backend, though removed from model)
       if (values.companionsCount) formData.append("numberOfCompanions", values.companionsCount.toString())
       if (values.childrenCount) formData.append("numberOfChildren", values.childrenCount.toString())
-
-      // Auto-set presence based on price availability
-      formData.append("cojoinPresence", (Number(values.cojoinPrice) > 0).toString())
-      formData.append("childPresence", (Number(values.childPrice) > 0).toString())
 
       // Dates
       if (values.startDate) formData.append("startDate", format(values.startDate, "yyyy-MM-dd"))
       if (values.endDate) formData.append("endDate", format(values.endDate, "yyyy-MM-dd"))
-
-      // Pricing
-      const pricing: any = {}
-      if (values.basePrice) pricing.basePrice = Number(values.basePrice)
-      if (values.cojoinPrice) pricing.cojoinPrice = Number(values.cojoinPrice)
-      if (values.childPrice) pricing.childPrice = Number(values.childPrice)
-      if (Object.keys(pricing).length > 0) {
-        formData.append("pricing", JSON.stringify(pricing))
-      }
 
       // Includes calculation (from separate checkboxes/badges logic if implemented, or just the string)
       // Note: In this redesign, we should probably map the includes properly.
@@ -748,6 +743,7 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
                               <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date("1900-01-01")} initialFocus locale={fr} />
                             </PopoverContent>
                           </Popover>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -770,6 +766,7 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
                               <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date("1900-01-01")} initialFocus locale={fr} />
                             </PopoverContent>
                           </Popover>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -801,7 +798,8 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
             <FormSection title="Tarification & Services" description="Définissez les prix et les services inclus.">
               <div className="space-y-6">
                 {/* Prices */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Base Price */}
                   <FormField
                     control={form.control}
                     name="basePrice"
@@ -809,30 +807,89 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
                       <FormItem>
                         <FormLabel>Prix Adhérent (TND)</FormLabel>
                         <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {/* Cojoint Presence Checkbox */}
+                  <FormField
+                    control={form.control}
+                    name="cojoinPresence"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Présence Conjoint</FormLabel>
+                          <div className="text-sm text-muted-foreground">
+                            Activer le prix pour les conjoints
+                          </div>
+                        </div>
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Cojoint Price - conditionally rendered */}
+                {form.watch("cojoinPresence") && (
                   <FormField
                     control={form.control}
                     name="cojoinPrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Prix Conjoint</FormLabel>
+                        <FormLabel>Prix Conjoint (TND)</FormLabel>
                         <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
+                )}
+
+                {/* Child Presence Checkbox */}
+                <FormField
+                  control={form.control}
+                  name="childPresence"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Présence Enfant</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Activer le prix pour les enfants
+                        </div>
+                      </div>
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Child Price - conditionally rendered */}
+                {form.watch("childPresence") && (
                   <FormField
                     control={form.control}
                     name="childPrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Prix Enfant</FormLabel>
+                        <FormLabel>Prix Enfant (TND)</FormLabel>
                         <FormControl><Input type="number" placeholder="0.00" {...field} /></FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
+                )}
 
                 {/* Includes */}
                 {currentIncludesOptions.length > 0 && (
@@ -869,6 +926,7 @@ export function AddEditEventForm({ onSubmit, initialData }: AddEditEventFormProp
                     <FormItem>
                       <FormLabel>Capacité maximale</FormLabel>
                       <FormControl><Input type="number" placeholder="Ex: 50" {...field} /></FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

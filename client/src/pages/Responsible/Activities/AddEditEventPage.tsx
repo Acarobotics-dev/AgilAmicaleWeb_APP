@@ -64,9 +64,10 @@ export function AddEditEventPage() {
           toast.success("Événement ajouté avec succès!");
         }
         navigate("/responsable/events");
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to save event:", err);
-        toast.error("Échec de l'enregistrement de l'événement");
+        const errorMessage = err.response?.data?.message || "Échec de l'enregistrement de l'événement";
+        toast.error(errorMessage);
       } finally {
         setIsSubmitting(false);
       }

@@ -155,12 +155,12 @@ const NavbarSection = () => {
                     <>
                       <DropdownMenuItem asChild className="hover:bg-gray-800 text-xs sm:text-sm">
                         <Link
-                          to="/responsable/dashboard"
+                          to="/responsable/users"
                           className="flex items-center w-full text-gray-200"
-                          aria-label="Dashboard"
+                          aria-label="Users"
                         >
                           <Table2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                          Tableau de bord
+                          Espace Responsable
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-gray-700" />

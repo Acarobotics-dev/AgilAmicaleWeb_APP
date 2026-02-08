@@ -25,7 +25,7 @@ export interface BaseEvent {
   isFeatured?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
-   startDate: Date;
+  startDate: Date;
   endDate: Date;
 }
 
@@ -68,10 +68,8 @@ export interface ClubEvent extends BaseEvent {
 // Activité
 export interface ActiviteEvent extends BaseEvent {
   type: "Activité";
-
-  activityTime: string;
   sportType: string;
-  durationMinutes: number;
+  durationMinutes: string;
   location: string;
   equipmentProvided?: string[];
 }
@@ -82,6 +80,7 @@ export interface EvenementEvent extends BaseEvent {
   eventTime: string;
   organizer: string;
   location: string;
+  program?: string[];
 }
 
 // Union type for all events

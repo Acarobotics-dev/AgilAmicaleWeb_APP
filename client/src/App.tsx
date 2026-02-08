@@ -20,7 +20,6 @@ import { HouseSection } from "./pages/Responsible/Houses";
 import { AddEditHousePage } from "./pages/Responsible/Houses/AddEditHousePage";
 import { UsersSection } from "./pages/Responsible/Users";
 import { AddEditUserPage } from "./pages/Responsible/Users/AddEditUserPage";
-import { ResponsibleDashboard } from "./pages/Responsible/Dashboard";
 import { HotelSection } from "./pages/Responsible/Hotels";
 import { AddEditHotelPage } from "./pages/Responsible/Hotels/AddEditHotelPage";
 import { EventSection } from "./pages/Responsible/Activities";
@@ -206,17 +205,6 @@ const App = () => {
         />
       ),
     },
-    {
-      path: "/responsable/dashboard",
-      element: (
-        <ProtectedRoute
-          element={<ResponsibleDashboard />}
-          authenticated={auth?.authenticate}
-          user={auth?.user}
-        />
-      ),
-    },
-
     {
       path: "/responsable/booking",
       element: (

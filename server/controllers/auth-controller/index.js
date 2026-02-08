@@ -170,14 +170,14 @@ const loginUser = async (req, res, next) => {
     const accessToken =  jwt.sign(
       { _id: user._id, userEmail: user.userEmail, role: user.role, status: user.status },
       process.env.JWT_SECRET,
-      { expiresIn: "60m" }
+      { expiresIn: "30d" }
     );
 
     // Set HTTP-only cookie
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 3600000, // 1 hour
+      maxAge: 2592000000, // 30 days
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     });
 

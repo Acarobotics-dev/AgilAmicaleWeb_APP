@@ -1,12 +1,6 @@
-import { Users, House, Book ,AlignJustify ,FilePlus,Building ,CalendarDays, LayoutDashboard } from "lucide-react";
+import { Users, House, Book ,AlignJustify ,FilePlus,Building ,CalendarDays } from "lucide-react";
 
 const menuItems = [
-  {
-    title: "Tableau de bord",
-    icon: LayoutDashboard,
-    id: "dashboard",
-    path: "/responsable/dashboard",
-  },
   {
     title: "Utilisateurs",
     icon: Users,

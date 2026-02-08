@@ -173,7 +173,7 @@ const Login = () => {
         toast.success(`Bienvenue ${user.firstName || ""}!`);
 
         // Role-based redirection
-        navigate(user.role === "adherent" ? "/home" : "/responsable/dashboard");
+        navigate(user.role === "adherent" ? "/home" : "/responsable/users");
       } else {
         handleLoginError(result);
       }

@@ -41,7 +41,7 @@ const commonEventSchema = new mongoose.Schema({
     }
   },
 
-  pricing: {
+  basePrice: {
       type: Number,
       required: [true, "Le prix est obligatoire"],
       min: [0, "Le prix ne peut pas être négatif"],
@@ -53,7 +53,7 @@ const commonEventSchema = new mongoose.Schema({
   cojoinPrice: {
     type: Number,
     default: function () {
-      return this.pricing;
+      return this.basePrice;
     },
   },
   childPresence :{
@@ -63,7 +63,7 @@ const commonEventSchema = new mongoose.Schema({
   childPrice: {
     type: Number,
     default: function () {
-      return this.pricing;
+      return this.basePrice;
     },
   },
   includes: {
@@ -79,18 +79,7 @@ const commonEventSchema = new mongoose.Schema({
     default: 0,
     min: 0,
   },
-  // Number of accompanying adults/companions allowed or expected
-  numberOfCompanions: {
-    type: Number,
-    default: 0,
-    min: [0, 'Le nombre de compagnons ne peut pas être négatif']
-  },
-  // Number of children allowed or expected
-  numberOfChildren: {
-    type: Number,
-    default: 0,
-    min: [0, 'Le nombre d\'enfants ne peut pas être négatif']
-  },
+
   isActive: {
     type: Boolean,
     default: true,
