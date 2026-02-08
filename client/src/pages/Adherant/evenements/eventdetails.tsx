@@ -9,7 +9,7 @@ import { X, ArrowLeft } from "lucide-react";
 import { Event, ParticipantData } from "./types";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { AddBookingService, getAllEvents } from "@/services";
-import { BadgeEuro, User, Gift, CheckCircle2 } from "lucide-react";
+import { BadgeEuro, User, Gift, CheckCircle2, Loader2 } from "lucide-react";
 import { MapPin, Calendar, Clock, Users as UsersIcon, User as UserIcon, Bus, BedDouble, Building2, Dumbbell, Flag, Briefcase, Map as MapIcon, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { toast } from "react-toastify";
@@ -510,6 +510,7 @@ export default function EventDetails() {
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isBooking, setIsBooking] = useState(false);
   const { auth } = useAuth();
 
   // Assign eventDate based on event type and event fields
@@ -600,6 +601,7 @@ export default function EventDetails() {
     // The UI handles adding rows, so if length > 0, we validate content.
     // The validation above covers it.
 
+    setIsBooking(true);
     try {
       const result = await AddBookingService(auth.user._id, event._id, event.type, eventDate, participants);
       if (result.success) {
@@ -632,6 +634,8 @@ export default function EventDetails() {
     } catch (err) {
       console.error(err);
       toast.error("Une erreur est survenue.");
+    } finally {
+      setIsBooking(false);
     }
   };
 
@@ -731,12 +735,14 @@ export default function EventDetails() {
               <CardContent>
                 <Button
                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-base sm:text-lg font-semibold h-12"
+                  disabled={isBooking}
                   onClick={
                     event.childPresence || event.cojoinPresence
                       ? submitParticipantsAndBook
                       : handleEventBooking
                   }
                 >
+                  {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Participer
                 </Button>
               </CardContent>
