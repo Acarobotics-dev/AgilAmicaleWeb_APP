@@ -288,11 +288,9 @@ export default function EvenementsList() {
                     </Button>
                   </div>
                   <div className="text-xl font-semibold bg-gradient-to-r from-yellow-600 to-yellow-400 text-transparent bg-clip-text">
-                    {typeof event.pricing === 'object'
-                      ? `${(event.pricing as any)?.basePrice || 'N/A'} TND`
-                      : event.pricing
-                        ? `${event.pricing} TND`
-                        : "Prix N/A"}
+                    {event.basePrice !== undefined
+                      ? `${event.basePrice} TND`
+                      : "Prix N/A"}
                   </div>
                 </div>
               </CardContent>

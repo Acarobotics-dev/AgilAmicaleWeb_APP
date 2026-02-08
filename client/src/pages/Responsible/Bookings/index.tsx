@@ -386,10 +386,38 @@ export function BookingsSection() {
               </div>
               <Separator />
               <div>
+                <h4 className="font-medium text-gray-500 mb-2">Participants ({1 + (selectedBooking.participants?.length || 0)})</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
+                    <span className="font-medium">
+                      {usersMap[selectedBooking.userId]?.firstName} {usersMap[selectedBooking.userId]?.lastName}
+                    </span>
+                    <Badge variant="outline" className="text-xs">Adhérent</Badge>
+                  </div>
+                  {selectedBooking.participants && selectedBooking.participants.length > 0 && selectedBooking.participants.map((p: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
+                      <span className="font-medium">{p.firstName} {p.lastName} <span className="text-gray-400 text-xs">({p.age} ans)</span></span>
+                      <Badge variant="secondary" className="text-xs capitalize">
+                        {p.type === 'cojoint' ? 'Conjoint(e)' : p.type === 'child' ? 'Enfant' : p.type}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Separator />
+              <div>
                 <h4 className="font-medium text-gray-500 mb-1">Dates & Statut</h4>
-                <Badge className={getStatusBadge(selectedBooking.status)}>
-                  {selectedBooking.status}
-                </Badge>
+                <div className="flex items-center gap-4">
+                  <Badge className={getStatusBadge(selectedBooking.status)}>
+                    {selectedBooking.status}
+                  </Badge>
+                  {selectedBooking.bookingPeriod && (
+                    <span className="text-sm text-gray-600 flex items-center gap-1">
+                      <Calendar className="w-4 h-4 ml-2" />
+                      {format(new Date(selectedBooking.bookingPeriod.start), "dd/MM/yyyy")} - {format(new Date(selectedBooking.bookingPeriod.end), "dd/MM/yyyy")}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}

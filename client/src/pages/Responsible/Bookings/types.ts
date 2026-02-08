@@ -15,6 +15,13 @@ export interface BookingPeriod {
   end: string;   // ISO date string
 }
 
+export interface Participant {
+  firstName: string;
+  lastName: string;
+  age: number;
+  type: string;
+}
+
 export interface Booking {
   _id?: string;
   userId: string;
@@ -23,6 +30,7 @@ export interface Booking {
   activityModel: ActivityModel;
   bookingPeriod?: BookingPeriod;
   status?: BookingStatus;
+  participants?: Participant[];
   createdAt?: string;
   updatedAt?: string;
 }

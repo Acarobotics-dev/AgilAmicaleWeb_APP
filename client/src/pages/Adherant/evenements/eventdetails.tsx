@@ -6,11 +6,11 @@ import { TailChase } from "ldrs/react";
 import "ldrs/react/TailChase.css";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { X, ArrowLeft } from "lucide-react";
-import { Event } from "./types";
+import { Event, ParticipantData } from "./types";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 import { AddBookingService, getAllEvents } from "@/services";
 import { BadgeEuro, User, Gift, CheckCircle2 } from "lucide-react";
-import { MapPin, Calendar, Clock, Users as UsersIcon, User as UserIcon, Bus, BedDouble, Building2, Dumbbell, Flag, Briefcase, Map as MapIcon } from "lucide-react";
+import { MapPin, Calendar, Clock, Users as UsersIcon, User as UserIcon, Bus, BedDouble, Building2, Dumbbell, Flag, Briefcase, Map as MapIcon, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { toast } from "react-toastify";
 
@@ -272,12 +272,11 @@ const EventTypeDetails = ({ event }: { event: Event }) => {
 };
 
 const PricingCard = ({ event }: { event: Event }) => {
-  // Handle both old nested structure and new flat structure for backward compatibility
-  const basePrice = typeof event.pricing === 'object'
-    ? (event.pricing as any)?.basePrice
-    : event.pricing;
-  const companionPrice = event.cojoinPrice ?? (typeof event.pricing === 'object' ? (event.pricing as any)?.cojoinPrice : undefined);
-  const kidPrice = event.childPrice ?? (typeof event.pricing === 'object' ? (event.pricing as any)?.childPrice : undefined);
+  // Use basePrice directly or fallback to pricing (compatibility)
+  const basePrice = event.basePrice;
+
+  const companionPrice = event.cojoinPrice;
+  const kidPrice = event.childPrice;
 
   return (
     <Card className="mb-6 lg:mb-0">
@@ -294,14 +293,14 @@ const PricingCard = ({ event }: { event: Event }) => {
             <span className="font-semibold">Prix d'adherent :</span>
             <span className="ml-auto">{basePrice || "N/A"} DT</span>
           </div>
-          {(event.cojoinPresence || companionPrice) && companionPrice && (
+          {event.cojoinPresence && companionPrice !== undefined && (
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-yellow-500" />
               <span className="font-semibold">Prix accompagnant :</span>
               <span className="ml-auto">{companionPrice} DT</span>
             </div>
           )}
-          {(event.childPresence || kidPrice) && kidPrice && (
+          {event.childPresence && kidPrice !== undefined && (
             <div className="flex items-center gap-2">
               <Gift className="w-4 h-4 text-yellow-500" />
               <span className="font-semibold">Prix enfant :</span>
@@ -309,6 +308,176 @@ const PricingCard = ({ event }: { event: Event }) => {
             </div>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const ParticipantInformationCard = ({
+  event,
+  childrenData,
+  setChildrenData,
+  companionsData,
+  setCompanionsData
+}: {
+  event: Event;
+  childrenData: ParticipantData[];
+  setChildrenData: React.Dispatch<React.SetStateAction<ParticipantData[]>>;
+  companionsData: ParticipantData[];
+  setCompanionsData: React.Dispatch<React.SetStateAction<ParticipantData[]>>;
+}) => {
+  if (!event.childPresence && !event.cojoinPresence) return null;
+
+  const addChild = () => {
+    setChildrenData([...childrenData, { firstName: "", lastName: "", age: null }]);
+  };
+
+  const removeChild = (index: number) => {
+    setChildrenData(childrenData.filter((_, i) => i !== index));
+  };
+
+  const updateChild = (index: number, field: keyof ParticipantData, value: string | number | null) => {
+    const newChildren = [...childrenData];
+    newChildren[index] = { ...newChildren[index], [field]: value };
+    setChildrenData(newChildren);
+  };
+
+  const addCompanion = () => {
+    setCompanionsData([...companionsData, { firstName: "", lastName: "", age: null }]);
+  };
+
+  const removeCompanion = (index: number) => {
+    setCompanionsData(companionsData.filter((_, i) => i !== index));
+  };
+
+  const updateCompanion = (index: number, field: keyof ParticipantData, value: string | number | null) => {
+    const newCompanions = [...companionsData];
+    newCompanions[index] = { ...newCompanions[index], [field]: value };
+    setCompanionsData(newCompanions);
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+          <UsersIcon className="w-5 h-5 text-blue-600" />
+          Informations Participants
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <p className="text-sm text-gray-600 italic">
+          Vous pouvez ajouter plusieurs participants pour chaque catégorie.
+        </p>
+
+        {event.childPresence && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b pb-1">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <Gift className="w-4 h-4 text-yellow-600" />
+                Enfants ({childrenData.length})
+              </h4>
+              <Button onClick={addChild} size="sm" variant="outline" className="h-7 text-xs gap-1">
+                <Plus className="w-3 h-3" /> Ajouter
+              </Button>
+            </div>
+
+            {childrenData.length === 0 && (
+              <p className="text-xs text-gray-500 italic">Aucun enfant ajouté.</p>
+            )}
+
+            <div className="space-y-4">
+              {childrenData.map((child, index) => (
+                <div key={index} className="grid grid-cols-1 gap-2 p-3 bg-gray-50 rounded-lg relative group">
+                  <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => removeChild(index)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 mb-1">Enfant {index + 1}</span>
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+                    placeholder="Prénom"
+                    value={child.firstName}
+                    onChange={e => updateChild(index, "firstName", e.target.value)}
+                  />
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+                    placeholder="Nom"
+                    value={child.lastName}
+                    onChange={e => updateChild(index, "lastName", e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+                    placeholder="Âge"
+                    value={child.age ?? ''}
+                    onChange={e => updateChild(index, "age", e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {event.cojoinPresence && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b pb-1">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <User className="w-4 h-4 text-yellow-600" />
+                Accompagnants ({companionsData.length})
+              </h4>
+              <Button onClick={addCompanion} size="sm" variant="outline" className="h-7 text-xs gap-1">
+                <Plus className="w-3 h-3" /> Ajouter
+              </Button>
+            </div>
+
+            {companionsData.length === 0 && (
+              <p className="text-xs text-gray-500 italic">Aucun accompagnant ajouté.</p>
+            )}
+
+            <div className="space-y-4">
+              {companionsData.map((companion, index) => (
+                <div key={index} className="grid grid-cols-1 gap-2 p-3 bg-gray-50 rounded-lg relative group">
+                  <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => removeCompanion(index)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 mb-1">Accompagnant {index + 1}</span>
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+                    placeholder="Prénom"
+                    value={companion.firstName}
+                    onChange={e => updateCompanion(index, "firstName", e.target.value)}
+                  />
+                  <input
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+                    placeholder="Nom"
+                    value={companion.lastName}
+                    onChange={e => updateCompanion(index, "lastName", e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+                    placeholder="Âge"
+                    value={companion.age ?? ''}
+                    onChange={e => updateCompanion(index, "age", e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -394,32 +563,42 @@ export default function EventDetails() {
     }
   }, [auth?.user?._id, event, eventDate, navigate]);
 
-  // Participants form fields
-  const [childFirstName, setChildFirstName] = useState("");
-  const [childLastName, setChildLastName] = useState("");
-  const [childAge, setChildAge] = useState<number | null>(null);
-  const [cojoinFirstName, setCojoinFirstName] = useState("");
-  const [cojoinLastName, setCojoinLastName] = useState("");
-  const [cojoinAge, setCojoinAge] = useState<number | null>(null);
+  // Participants form fields (Arrays)
+  const [childrenData, setChildrenData] = useState<ParticipantData[]>([]);
+  const [companionsData, setCompanionsData] = useState<ParticipantData[]>([]);
 
   const submitParticipantsAndBook = async () => {
     if (!auth?.user?._id || !event) return;
 
     const participants: any[] = [];
-    if (event.childPresence && event.childPrice && Number(event.childPrice) > 0) {
-      if (!childFirstName || !childLastName || childAge === null) {
-        toast.error("Veuillez renseigner le nom, prénom et l'âge de l'enfant.");
-        return;
+
+    // Validate children
+    if (event.childPresence) {
+      for (const child of childrenData) {
+        if (!child.firstName || !child.lastName || child.age === null) {
+          toast.error("Veuillez remplir tous les champs pour chaque enfant.");
+          return;
+        }
+        participants.push({ ...child, type: 'child' });
       }
-      participants.push({ firstName: childFirstName, lastName: childLastName, age: childAge, type: 'child' });
     }
-    if (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0) {
-      if (!cojoinFirstName || !cojoinLastName || cojoinAge === null) {
-        toast.error("Veuillez renseigner le nom, prénom et l'âge de l'accompagnant.");
-        return;
+
+    // Validate companions
+    if (event.cojoinPresence) {
+      for (const companion of companionsData) {
+        if (!companion.firstName || !companion.lastName || companion.age === null) {
+          toast.error("Veuillez remplir tous les champs pour chaque accompagnant.");
+          return;
+        }
+        participants.push({ ...companion, type: 'cojoint' });
       }
-      participants.push({ firstName: cojoinFirstName, lastName: cojoinLastName, age: cojoinAge, type: 'cojoint' });
     }
+
+    // Ensure at least one participant is added if the user intended to add participants but left list empty?
+    // Actually, maybe they just want to book for themselves even if childPresence is true but they have no kids.
+    // So empty lists are valid if they don't click "Add". But if they added a row, they must fill it.
+    // The UI handles adding rows, so if length > 0, we validate content.
+    // The validation above covers it.
 
     try {
       const result = await AddBookingService(auth.user._id, event._id, event.type, eventDate, participants);
@@ -427,7 +606,28 @@ export default function EventDetails() {
         toast.success("Réservation effectuée avec succès !");
         setTimeout(() => navigate("/evenements"), 1200);
       } else {
-        toast.error(result.error?.message || "Erreur lors de la réservation", { autoClose: 8000 });
+        const error = result.error!;
+        let userMessage = error.message;
+
+        switch (error.errorType) {
+          case "overlapping_booking":
+            userMessage = "Vous avez déjà une réservation pour cette période.";
+            break;
+          case "invalid_period":
+            userMessage = "La période sélectionnée n'est pas valide.";
+            break;
+          case "network_error":
+            userMessage = "Problème de connexion. Veuillez vérifier votre internet.";
+            break;
+          case "duplicate_event_booking": // Handle duplicate booking error
+            userMessage = "Vous êtes déjà inscrit à cet événement.";
+            break;
+          default:
+            userMessage = error.message || "Une erreur inattendue s'est produite.";
+        }
+
+        // If it's a 409 conflict, also show standard message if type unknown but usually redundant
+        toast.error(userMessage, { autoClose: 8000 });
       }
     } catch (err) {
       console.error(err);
@@ -526,85 +726,13 @@ export default function EventDetails() {
           <div className="space-y-6">
             <Card className="mb-4 sticky top-8">
               <CardHeader>
-                <CardTitle className="text-lg sm:text-xl text-center">Participer au {event.title}</CardTitle>
+                <CardTitle className="text-lg sm:text-xl text-center">Réserver cet événement</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Inline participant form - shows when child or companion pricing exists */}
-                {((event.childPresence && event.childPrice && Number(event.childPrice) > 0) ||
-                  (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0)) && (
-                    <div className="space-y-4 border-b pb-4">
-                      <p className="text-sm text-gray-600">
-                        Veuillez renseigner les informations demandées pour les tarifs enfants/accompagnants.
-                      </p>
-
-                      {event.childPresence && event.childPrice && Number(event.childPrice) > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-sm flex items-center gap-2">
-                            <Gift className="w-4 h-4 text-yellow-600" />
-                            Informations de l'enfant
-                          </h4>
-                          <div className="grid grid-cols-1 gap-2">
-                            <input
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                              placeholder="Prénom"
-                              value={childFirstName}
-                              onChange={e => setChildFirstName(e.target.value)}
-                            />
-                            <input
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                              placeholder="Nom"
-                              value={childLastName}
-                              onChange={e => setChildLastName(e.target.value)}
-                            />
-                            <input
-                              type="number"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                              placeholder="Âge"
-                              value={childAge ?? ''}
-                              onChange={e => setChildAge(Number(e.target.value))}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-sm flex items-center gap-2">
-                            <User className="w-4 h-4 text-yellow-600" />
-                            Informations de l'accompagnant
-                          </h4>
-                          <div className="grid grid-cols-1 gap-2">
-                            <input
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                              placeholder="Prénom"
-                              value={cojoinFirstName}
-                              onChange={e => setCojoinFirstName(e.target.value)}
-                            />
-                            <input
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                              placeholder="Nom"
-                              value={cojoinLastName}
-                              onChange={e => setCojoinLastName(e.target.value)}
-                            />
-                            <input
-                              type="number"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                              placeholder="Âge"
-                              value={cojoinAge ?? ''}
-                              onChange={e => setCojoinAge(Number(e.target.value))}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                {/* Submit button - shows different action based on whether participants are needed */}
+              <CardContent>
                 <Button
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-base sm:text-lg font-semibold"
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-base sm:text-lg font-semibold h-12"
                   onClick={
-                    (event.childPresence && event.childPrice && Number(event.childPrice) > 0) ||
-                      (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0)
+                    event.childPresence || event.cojoinPresence
                       ? submitParticipantsAndBook
                       : handleEventBooking
                   }
@@ -614,7 +742,15 @@ export default function EventDetails() {
               </CardContent>
             </Card>
 
-            {event.pricing && <PricingCard event={event} />}
+            {((event as any).pricing || event.basePrice) && <PricingCard event={event} />}
+
+            <ParticipantInformationCard
+              event={event}
+              childrenData={childrenData}
+              setChildrenData={setChildrenData}
+              companionsData={companionsData}
+              setCompanionsData={setCompanionsData}
+            />
 
             {event.includes && event.includes.length > 0 && <IncludesCard includes={event.includes} />}
           </div>

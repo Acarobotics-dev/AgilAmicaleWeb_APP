@@ -80,6 +80,9 @@ export default function HouseDetails() {
         case "network_error":
           userMessage = "Problème de connexion. Veuillez vérifier votre internet.";
           break;
+        case "house_unavailable":
+          userMessage = "Cette maison n'est pas disponible pour les dates sélectionnées.";
+          break;
         default:
           userMessage = "Une erreur inattendue s'est produite.";
       }

@@ -15,7 +15,8 @@ export interface BaseEvent {
   featuredPhoto?: string;
   startDate: Date; // Universal start date
   endDate: Date; // Universal end date
-  pricing: number;
+
+  basePrice?: number;
   cojoinPresence?: boolean;
   cojoinPrice?: number;
   childPresence?: boolean;
@@ -89,4 +90,10 @@ export type Event =
   | ClubEvent
   | ActiviteEvent
   | EvenementEvent;
+
+export interface ParticipantData {
+  firstName: string;
+  lastName: string;
+  age: number | null;
+}
 

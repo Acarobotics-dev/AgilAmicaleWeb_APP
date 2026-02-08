@@ -14,6 +14,23 @@ const ERROR_MESSAGES = {
   SERVER_ERROR: "La création de la réservation a échoué",
 };
 
+// Helper function to generate date strings (YYYY-MM-DD) between start and end (inclusive)
+const getDatesInRange = (startDate, endDate) => {
+  const dates = [];
+
+  // Normalize start and end dates to UTC midnight
+  let currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+  const end = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
+
+  while (currentDate <= end) {
+    // Push ISO date string (YYYY-MM-DD) to match House.unavailableDates schema
+    dates.push(currentDate.toISOString().split("T")[0]);
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+  }
+
+  return dates;
+};
+
 const createBooking = async (req, res, next) => {
   try {
     const { userId, activity, activityCategory, bookingPeriod } = req.body;
@@ -22,6 +39,23 @@ const createBooking = async (req, res, next) => {
       activityCategory === "Sejour Maison" ? "House" : "Event";
     let period = bookingPeriod;
     let event; // will hold Event doc when activityModel === 'Event'
+
+    // Check for duplicate event booking
+    if (activityModel === "Event") {
+      const existingEventBooking = await Booking.findOne({
+        userId,
+        activity,
+        activityModel: "Event",
+      });
+      if (existingEventBooking) {
+        return res.status(409).json({
+          success: false,
+          message: "Vous avez déjà réservé cet évènement.",
+          errorType: "duplicate_event_booking",
+          errorCode: "BOOKING_006",
+        });
+      }
+    }
 
     if (activityModel === "House") {
       if (typeof period === "string") {
@@ -67,21 +101,31 @@ const createBooking = async (req, res, next) => {
           },
         });
       }
-    } else {
-      const existingEventBooking = await Booking.findOne({
-        userId,
-        activity,
-        activityModel: "Event",
-      });
-      if (existingEventBooking) {
-        return res.status(409).json({
+
+      // Check House availability (unavailableDates)
+      const house = await House.findById(activity);
+      if (!house) {
+        return res.status(404).json({
           success: false,
-          message: "Vous avez déjà réservé cet évènement.",
-          errorType: "duplicate_event_booking",
-          errorCode: "BOOKING_006",
+          message: "Maison introuvable.",
+          errorType: "house_not_found",
+          errorCode: "BOOKING_016",
         });
       }
 
+      if (house.unavailableDates && house.unavailableDates.length > 0) {
+         const requestedDates = getDatesInRange(new Date(period.start), new Date(period.end));
+         const isUnavailable = requestedDates.some(date => house.unavailableDates.includes(date));
+
+         if (isUnavailable) {
+            return res.status(400).json({
+              success: false,
+              message: "Cette maison n'est pas disponible pour les dates sélectionnées.",
+              errorType: "house_unavailable",
+              errorCode: "BOOKING_017",
+            });
+         }
+      }
       // No need to fetch the event here; we'll check and increment atomically below
     }
 
@@ -120,94 +164,103 @@ const createBooking = async (req, res, next) => {
         });
       }
 
-      // Use findOneAndUpdate with explicit capacity check to prevent race condition
-      const updatedEvent = await Event.findOneAndUpdate(
-        {
-          _id: activity,
-          currentParticipants: { $lt: event.maxParticipants }
-        },
-        { $inc: { currentParticipants: 1 } },
-        { new: true }
-      );
+      // Calculate total participants (User + Guests)
+      const participantsCount = 1 + (participants ? participants.length : 0);
 
-      if (!updatedEvent) {
-        // Event exists but is full
-        return res.status(400).json({
-          success: false,
-          message: "Le nombre maximum de participants a été atteint pour cet évènement.",
-          errorType: "event_full",
-          errorCode: "BOOKING_008",
-        });
+      // Log detailed state for debugging
+      console.log('--- Event Booking Debug ---');
+      console.log('Event ID:', activity);
+      console.log('Max Participants:', event.maxParticipants);
+      console.log('Current Participants (DB):', event.currentParticipants);
+      console.log('Attempting to add:', participantsCount);
+
+      // Prepare update condition
+      // Only enforce capacity limit if maxParticipants is defined
+      const updateCondition = { _id: activity };
+
+      if (typeof event.maxParticipants === 'number') {
+        const remainingSpots = event.maxParticipants - participantsCount;
+        console.log('Remaining Spots needed >= 0. Calculated limit for current:', remainingSpots);
+
+        // We need to ensure: current + new <= max
+        // So: current <= max - new
+        // ALSO handle case where currentParticipants is missing (treat as 0)
+        updateCondition.$or = [
+          { currentParticipants: { $exists: false } },
+          { currentParticipants: { $eq: null } },
+          { currentParticipants: { $lte: remainingSpots } }
+        ];
+      }
+
+
+      // Variable to hold the result of the update
+      let updatedEvent;
+
+      // Safeguard: If currentParticipants is null/undefined in DB, findOneAndUpdate with $inc might fail or result in NaN if not handled by schema default on read.
+      // To be safe, let's fast-track: if event.currentParticipants is null/undefined, treat it as 0.
+      if (typeof event.currentParticipants === 'undefined' || event.currentParticipants === null) {
+          // If it's missing, we can't use $inc safely if the DB doesn't have it.
+          // We should set it to participantsCount.
+           updatedEvent = await Event.findByIdAndUpdate(
+            activity,
+            { $set: { currentParticipants: participantsCount } },
+            { new: true }
+          );
+           if (!updatedEvent) {
+            console.log('Booking failed during initialization of currentParticipants.');
+             return res.status(400).json({
+              success: false,
+              message: "Erreur lors de l'initialisation des participants.",
+              errorType: "event_full",
+              errorCode: "BOOKING_008_INIT",
+            });
+           }
+           console.log('Booking successful (initialized). New participant count:', updatedEvent.currentParticipants);
+      } else {
+          // Use findOneAndUpdate with explicit capacity check to prevent race condition
+          updatedEvent = await Event.findOneAndUpdate(
+            updateCondition,
+            { $inc: { currentParticipants: participantsCount } },
+            { new: true }
+          );
+
+          if (!updatedEvent) {
+            console.log('Booking failed: Event full or condition not met.');
+            // Event exists but is full
+            return res.status(400).json({
+              success: false,
+              message: "Le nombre maximum de participants a été atteint pour cet évènement.",
+              errorType: "event_full",
+              errorCode: "BOOKING_008",
+            });
+          }
+          console.log('Booking successful. New participant count:', updatedEvent.currentParticipants);
       }
 
       // Validate required participant info according to event pricing
+      // User feedback: Child/Cojoin info is NOT required. Removing strict validation.
+      /*
       try {
         // If childPresence is enabled, require at least one child participant
         if (event.childPresence && event.childPrice && Number(event.childPrice) > 0) {
-          const childParticipants = participants.filter(p => String(p.type).toLowerCase() === 'child');
-          if (!childParticipants.length) {
-            return res.status(400).json({
-              success: false,
-              message: "Les informations de l'enfant sont requises pour ce tarif.",
-              errorType: "missing_child_info",
-              errorCode: "BOOKING_009",
-            });
-          }
-          // validate each child participant
-          for (const c of childParticipants) {
-            if (!c.firstName || !c.lastName || (typeof c.age === 'undefined' || c.age === null)) {
-              return res.status(400).json({
-                success: false,
-                message: "Chaque enfant doit avoir un prénom, nom et âge.",
-                errorType: "invalid_child_info",
-                errorCode: "BOOKING_010",
-              });
-            }
-          }
-          // Optionally enforce max number of children
-          if (typeof event.numberOfChildren === 'number' && childParticipants.length > event.numberOfChildren) {
-            return res.status(400).json({
-              success: false,
-              message: `Nombre d'enfants dépassé (max ${event.numberOfChildren}).`,
-              errorType: "too_many_children",
-              errorCode: "BOOKING_011",
-            });
-          }
+           // ... validation logic commented out as per requirement ...
+           // We will still validate structure IF provided, but not enforce presence.
         }
+      } catch (validationErr) { ... }
+      */
 
-        // If cojoinPresence is enabled, require at least one companion participant
-        if (event.cojoinPresence && event.cojoinPrice && Number(event.cojoinPrice) > 0) {
-          const cojoinParticipants = participants.filter(p => String(p.type).toLowerCase() === 'cojoint' || String(p.type).toLowerCase() === 'companion');
-          if (!cojoinParticipants.length) {
-            return res.status(400).json({
-              success: false,
-              message: "Les informations de l'accompagnant sont requises pour ce tarif.",
-              errorType: "missing_cojoin_info",
-              errorCode: "BOOKING_012",
-            });
+      // Basic validation: IF participants are provided, they should have names.
+      if (participants && participants.length > 0) {
+          for (const p of participants) {
+              if (!p.firstName || !p.lastName) {
+                   return res.status(400).json({
+                    success: false,
+                    message: "Le nom et prénom sont obligatoires pour chaque participant ajouté.",
+                    errorType: "invalid_participant_info",
+                    errorCode: "BOOKING_015",
+                  });
+              }
           }
-          for (const a of cojoinParticipants) {
-            if (!a.firstName || !a.lastName || (typeof a.age === 'undefined' || a.age === null)) {
-              return res.status(400).json({
-                success: false,
-                message: "Chaque accompagnant doit avoir un prénom, nom et âge.",
-                errorType: "invalid_cojoin_info",
-                errorCode: "BOOKING_013",
-              });
-            }
-          }
-          if (typeof event.numberOfCompanions === 'number' && cojoinParticipants.length > event.numberOfCompanions) {
-            return res.status(400).json({
-              success: false,
-              message: `Nombre d'accompagnants dépassé (max ${event.numberOfCompanions}).`,
-              errorType: "too_many_cojoin",
-              errorCode: "BOOKING_014",
-            });
-          }
-        }
-      } catch (validationErr) {
-        console.error('Participant validation failed:', validationErr);
-        return res.status(400).json({ success: false, message: 'Erreur de validation des participants.' });
       }
 
       // Set booking period from event dates
@@ -349,22 +402,7 @@ const updateBooking = async (req, res, next) => {
     next(error);
   }
 };
-// Helper function to generate date strings (YYYY-MM-DD) between start and end (inclusive)
-const getDatesInRange = (startDate, endDate) => {
-  const dates = [];
 
-  // Normalize start and end dates to UTC midnight
-  let currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
-  const end = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
-
-  while (currentDate <= end) {
-    // Push ISO date string (YYYY-MM-DD) to match House.unavailableDates schema
-    dates.push(currentDate.toISOString().split("T")[0]);
-    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-  }
-
-  return dates;
-};
 
 
 const updateStatusBooking = async (req, res, next) => {
@@ -573,9 +611,10 @@ const deleteBooking = async (req, res, next) => {
     // 1. If Event booking, decrement currentParticipants
     if (booking.activityModel === "Event" && booking.activity && booking.activity._id) {
       try {
+        const participantsCount = 1 + (booking.participants ? booking.participants.length : 0);
         await Event.findByIdAndUpdate(
           booking.activity._id,
-          { $inc: { currentParticipants: -1 } }
+          { $inc: { currentParticipants: -participantsCount } }
         );
       } catch (error) {
         console.error("Failed to decrement event participants on booking deletion:", error.message);

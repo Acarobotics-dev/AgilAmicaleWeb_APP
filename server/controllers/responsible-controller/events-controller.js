@@ -150,7 +150,7 @@ const createEvent = async (req, res, next) => {
       childPrice: (childPresence === true || childPresence === "true") && childPrice !== "" ? Number(childPrice) : undefined,
       includes: parseArray(includes),
       maxParticipants: parsedMaxParticipants,
-      currentParticipants,
+      currentParticipants: (currentParticipants === undefined || currentParticipants === null || currentParticipants === "") ? 0 : Number(currentParticipants),
       isActive: parsedIsActive,
       isFeatured: parsedIsFeatured,
       // universal dates for all event types
