@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import ExcelJS from "exceljs"
 import { toast } from "sonner"
 import {
   Loader2,
@@ -12,7 +13,7 @@ import {
   Trash2,
   Eye,
   CheckCircle,
-  Calendar,
+  Calendar as CalendarIcon,
   Filter
 } from "lucide-react"
 
@@ -59,6 +60,8 @@ import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/common/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar as DateCalendar } from "@/components/ui/calendar"
 
 // --- Constants & Helpers ---
 
@@ -78,6 +81,7 @@ const getStatusBadge = (status: string = "") => {
 export function BookingsSection() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [dateRange, setDateRange] = useState<{ from?: Date | undefined; to?: Date | undefined } | undefined>(undefined)
 
   // State for Dialogs
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
@@ -147,9 +151,81 @@ export function BookingsSection() {
       // Status
       if (statusFilter !== "all" && booking.status !== statusFilter) return false
 
+      // Date range filter (based on bookingPeriod.start/end or fallback fields)
+      const bStart = booking.bookingPeriod?.start ? new Date(booking.bookingPeriod.start) : (booking as any).startDate ? new Date((booking as any).startDate) : null
+      const bEnd = booking.bookingPeriod?.end ? new Date(booking.bookingPeriod.end) : (booking as any).endDate ? new Date((booking as any).endDate) : null
+
+      if (dateRange && (dateRange.from || dateRange.to)) {
+        const rangeFrom = dateRange.from ? new Date(dateRange.from) : null
+        const rangeTo = dateRange.to ? new Date(dateRange.to) : null
+
+        // If booking has no dates, exclude
+        if (!bStart && !bEnd) return false
+
+        // Normalize booking start/end
+        const bookingStart = bStart || bEnd
+        const bookingEnd = bEnd || bStart
+
+        // Overlap check: bookingStart <= rangeTo && bookingEnd >= rangeFrom
+        if (rangeFrom && bookingEnd && bookingEnd < rangeFrom) return false
+        if (rangeTo && bookingStart && bookingStart > rangeTo) return false
+      }
+
       return true
     })
-  }, [bookingsData.data, searchTerm, statusFilter, usersMap, activitiesMap])
+  }, [bookingsData.data, searchTerm, statusFilter, usersMap, activitiesMap, dateRange])
+
+  // Export filtered bookings to Excel
+  const handleExport = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook()
+      const sheet = workbook.addWorksheet("Réservations")
+
+      sheet.columns = [
+        { header: "Utilisateur", key: "user", width: 30 },
+        { header: "Matricule", key: "matricule", width: 20 },
+        { header: "Activité", key: "activity", width: 30 },
+        { header: "Catégorie", key: "category", width: 20 },
+        { header: "Début", key: "start", width: 15 },
+        { header: "Fin", key: "end", width: 15 },
+        { header: "Statut", key: "status", width: 15 },
+        { header: "Participants", key: "participants", width: 30 },
+      ]
+
+      filteredBookings.forEach((b: Booking) => {
+        const user = usersMap[b.userId]
+        const act = activitiesMap[b.activity]
+        const start = b.bookingPeriod?.start || (b as any).startDate || ""
+        const end = b.bookingPeriod?.end || (b as any).endDate || ""
+        const participantsText = [
+          `${user?.firstName || ""} ${user?.lastName || ""}`,
+          ...(b.participants || []).map((p: any) => `${p.firstName} ${p.lastName} (${p.type === 'cojoint' ? 'Accompagnant' : p.type})`)
+        ].join("; ")
+
+        sheet.addRow({
+          user: `${user?.firstName || ""} ${user?.lastName || ""}`,
+          matricule: user?.matricule || "",
+          activity: act?.title || "",
+          category: b.activityCategory || "",
+          start: start ? format(new Date(start), "dd/MM/yyyy") : "",
+          end: end ? format(new Date(end), "dd/MM/yyyy") : "",
+          status: b.status || "",
+          participants: participantsText,
+        })
+      })
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `reservations_${new Date().toISOString().slice(0,10)}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      toast.error("Erreur lors de l'export")
+    }
+  }
 
   // Actions
   const handleStatusUpdate = async () => {
@@ -319,34 +395,67 @@ export function BookingsSection() {
             </div>
 
             {/* Filters & Table Container */}
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                  <Input
-                    placeholder="Rechercher utilisateur ou activité..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous</SelectItem>
-                      <SelectItem value="en attente">En attente</SelectItem>
-                      <SelectItem value="confirmé">Confirmé</SelectItem>
-                      <SelectItem value="annulé">Annulé</SelectItem>
-                      <SelectItem value="terminé">Terminé</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <Card className="shadow-sm border">
+              <CardContent className="p-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="relative w-full md:w-80">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Rechercher utilisateur ou activité..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
 
-                </div>
-              </div>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous</SelectItem>
+                        <SelectItem value="en attente">En attente</SelectItem>
+                        <SelectItem value="confirmé">Confirmé</SelectItem>
+                        <SelectItem value="annulé">Annulé</SelectItem>
+                        <SelectItem value="terminé">Terminé</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
+                  <div className="flex items-center gap-2 justify-end">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="flex items-center gap-2">
+                          <CalendarIcon className="w-4 h-4" />
+                          {dateRange && (dateRange.from || dateRange.to) ? (
+                            <span className="text-sm">
+                              {dateRange.from ? format(new Date(dateRange.from), "dd/MM/yyyy") : ""}
+                              {dateRange.from && dateRange.to ? ` - ${format(new Date(dateRange.to), "dd/MM/yyyy")}` : dateRange.to ? ` - ${format(new Date(dateRange.to), "dd/MM/yyyy")}` : ""}
+                            </span>
+                          ) : (
+                            <span className="text-sm">Période</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto">
+                        <DateCalendar mode="range" selected={dateRange as any} onSelect={(r) => setDateRange(r as any)} />
+                        <div className="flex gap-2 mt-2 justify-end">
+                          <Button variant="outline" onClick={() => setDateRange(undefined)}>Réinitialiser</Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
+                    <Button onClick={handleExport} className="ml-2" variant={"default"}>
+                      Exporter
+                    </Button>
+
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-4">
               <DataTable
                 columns={columns}
                 data={filteredBookings}
@@ -398,7 +507,7 @@ export function BookingsSection() {
                     <div key={i} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                       <span className="font-medium">{p.firstName} {p.lastName} <span className="text-gray-400 text-xs">({p.age} ans)</span></span>
                       <Badge variant="secondary" className="text-xs capitalize">
-                        {p.type === 'cojoint' ? 'Conjoint(e)' : p.type === 'child' ? 'Enfant' : p.type}
+                        {p.type === 'cojoint' ? 'Accompagnant' : p.type === 'child' ? 'Enfant' : p.type}
                       </Badge>
                     </div>
                   ))}
@@ -413,7 +522,7 @@ export function BookingsSection() {
                   </Badge>
                   {selectedBooking.bookingPeriod && (
                     <span className="text-sm text-gray-600 flex items-center gap-1">
-                      <Calendar className="w-4 h-4 ml-2" />
+                      <CalendarIcon className="w-4 h-4 ml-2" />
                       {format(new Date(selectedBooking.bookingPeriod.start), "dd/MM/yyyy")} - {format(new Date(selectedBooking.bookingPeriod.end), "dd/MM/yyyy")}
                     </span>
                   )}

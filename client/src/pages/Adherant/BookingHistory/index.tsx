@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card,  } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowLeft, Loader2, Calendar, Clock, DollarSign, List } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ import Footer from "@/components/footer";
 import { useAuth } from "@/context/auth-context";
 import { DataTable } from "@/components/common/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { createTextColumn, createBadgeColumn } from "@/components/common/table-columns";
+import { createTextColumn, createBadgeColumn, createDateColumn } from "@/components/common/table-columns";
 
 interface BookingRow {
   id: string;
@@ -24,6 +24,7 @@ interface BookingRow {
   priceText: string;
   status?: string;
   createdAt?: string;
+  participantsCount?: number;
 }
 
 const statusVariants = {
@@ -81,6 +82,8 @@ export const MyBookings: React.FC = () => {
         else if (activity.price.length) priceText = `${activity.price[0].price} TND`;
       }
 
+      const participantsCount = 1 + (b.participants?.length || 0);
+
       return {
         id: b._id,
         title,
@@ -91,6 +94,7 @@ export const MyBookings: React.FC = () => {
         priceText,
         status: b.status || "en attente",
         createdAt: b.createdAt,
+        participantsCount,
       };
     });
   }, [bookingsData]);
@@ -109,13 +113,19 @@ export const MyBookings: React.FC = () => {
       cell: ({ row }) => <span className="font-medium text-gray-900">{row.original.title}</span>
     },
     createTextColumn<BookingRow>("category", "Catégorie"),
-    createTextColumn<BookingRow>("periodText", "Période"),
+    createTextColumn<BookingRow>("periodText", "Période", { truncate: true, maxWidth: "220px" }),
     {
       id: "duration",
       header: "Durée",
       cell: ({ row }) => row.original.isStay ? row.original.durationText : "-"
     },
     createBadgeColumn<BookingRow>("status", "Statut", statusVariants),
+    {
+      accessorKey: "participantsCount",
+      header: "Participants",
+      cell: ({ row }) => <span className="text-sm text-gray-900">{row.original.participantsCount}</span>
+    },
+    createDateColumn<BookingRow>("createdAt", "Réservé le", { formatStr: "d MMM yyyy", showTime: false }),
     {
       accessorKey: "priceText",
       header: "Prix",
@@ -163,7 +173,7 @@ export const MyBookings: React.FC = () => {
     <>
       <NavbarSection />
 
-      <div className="max-w-7xl mx-auto px-4 py-24 space-y-8 min-h-screen bg-transparent">
+      <div className=" mx-auto px-4 py-24 space-y-8 min-h-screen bg-transparent">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row items-center gap-6">
           <div className="flex items-center gap-4 w-full md:w-auto">
@@ -171,9 +181,7 @@ export const MyBookings: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Retour</span>
             </Button>
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-md">
-              <List className="w-6 h-6 sm:w-8 sm:h-8" />
-            </div>
+
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Mes Réservations</h1>
               <p className="text-xs sm:text-sm text-gray-500">Consultez l'historique de vos activités</p>
@@ -194,8 +202,8 @@ export const MyBookings: React.FC = () => {
         </div>
 
         {/* Content */}
-        <Card className="border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
+        <div className="overflow-hidden">
+          <div className="p-4 bg-gray-50/50 flex justify-between items-center">
             <div className="font-semibold text-gray-700 flex items-center gap-2">
               <Clock className="w-4 h-4 text-blue-500" />
               Réservations récentes
@@ -224,15 +232,15 @@ export const MyBookings: React.FC = () => {
 
           {/* Mobile View */}
           <div className="sm:hidden p-4 space-y-4 bg-white">
-            {filteredRows.length > 0 ? filteredRows.map(row => (
+                  {filteredRows.length > 0 ? filteredRows.map(row => (
               <div key={row.id} className="border border-gray-100 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] bg-white space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-semibold text-gray-900">{row.title}</h3>
                     <p className="text-xs text-blue-600 font-medium bg-blue-50 inline-block px-2 py-0.5 rounded-full mt-1">{row.category}</p>
                   </div>
-                  <Badge className={`${statusVariants[row.status as keyof typeof statusVariants] || statusVariants.default} border-0 shadow-none`}>
-                    {row.status}
+                  <Badge className={`${(statusVariants as any)[row.status as keyof typeof statusVariants]?.className || statusVariants.default.className} border-0 shadow-none`}>
+                    {(statusVariants as any)[row.status as keyof typeof statusVariants]?.label || row.status}
                   </Badge>
                 </div>
 
@@ -247,11 +255,17 @@ export const MyBookings: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-1">
-                  <span className="text-xs text-gray-400">ID: {row.id.slice(0, 8)}...</span>
-                  <div className="flex items-center gap-1 text-gray-900 font-bold">
-                    <DollarSign className="w-4 h-4 text-emerald-500" />
-                    {row.priceText}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
+                  <div>
+                    <span className="text-xs text-gray-400">ID: {row.id.slice(0, 8)}...</span>
+                    <div className="text-sm text-gray-500">Réservé le: {row.createdAt ? new Date(row.createdAt).toLocaleDateString('fr-FR') : '-'}</div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 text-gray-900 font-bold">
+                      <DollarSign className="w-4 h-4 text-emerald-500" />
+                      {row.priceText}
+                    </div>
+                    <div className="text-sm text-gray-600">Participants: <span className="font-medium text-gray-900">{row.participantsCount}</span></div>
                   </div>
                 </div>
               </div>
@@ -261,7 +275,7 @@ export const MyBookings: React.FC = () => {
               </div>
             )}
           </div>
-        </Card>
+        </div>
       </div>
 
       <Footer />
