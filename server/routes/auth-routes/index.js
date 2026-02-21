@@ -52,6 +52,15 @@ router.get("/check-auth", authenticateMiddleware, (req, res) => {
   });
 });
 
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+  return res.status(200).json({ success: true, message: "Déconnexion réussie." });
+});
+
 router.get("/get/:id", authenticateMiddleware, GetUserbyID);
 router.get("/bookingHistory/:id", authenticateMiddleware, requireApprovedStatus, getUserBookingHistory);
 

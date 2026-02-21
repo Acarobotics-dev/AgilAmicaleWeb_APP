@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Services
-import { checkAuthService, loginService, registerService } from "@/services";
+import { checkAuthService, loginService, logoutService, registerService } from "@/services";
 
 // TypeScript interfaces
 interface User {
@@ -57,7 +57,7 @@ interface InternalSignUpFormData {
 
 interface AuthContextValue {
   auth: AuthState;
-  resetCredentials: () => void;
+  resetCredentials: () => Promise<void>;
   handleLoginUser: (params: LoginParams) => Promise<LoginResult>;
   handleRegisterUser: (formData: SignUpFormData) => Promise<any>;
 }
@@ -194,9 +194,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     []
   );
 
-  const resetCredentials = useCallback(() => {
-    sessionStorage.removeItem("accessToken");
-    setAuth({ authenticate: false, user: null });
+  const resetCredentials = useCallback(async () => {
+    try {
+      await logoutService();
+    } catch (error) {
+      console.error("Logout service error:", error);
+    } finally {
+      sessionStorage.removeItem("accessToken");
+      setAuth({ authenticate: false, user: null });
+    }
   }, []);
 
   return (

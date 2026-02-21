@@ -50,6 +50,10 @@ export async function checkAuthService() {
   const { data } = await axiosInstance.get("/auth/check-auth");
   return data;
 }
+export async function logoutService() {
+  const { data } = await axiosInstance.post("/auth/logout");
+  return data;
+}
 export async function getAllUsersService() {
   const { data } = await axiosInstance.get("/auth/getAllUsers");
   return data;
