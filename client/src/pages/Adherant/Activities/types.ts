@@ -8,7 +8,7 @@ export type House = {
   numberOfRooms: number;
   numberOfBathrooms: number;
   amenities: string[];
-  images: { imageKey: string; url: string }[]; // Updated to be an array of objects with imageKey and url
+  images: string[]; // Updated to be an array of strings representing image URLs
   isAvailable: boolean;
   postedAt: string;
   availablePeriod: string[];

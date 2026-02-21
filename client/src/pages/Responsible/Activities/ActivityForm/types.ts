@@ -13,7 +13,7 @@ export interface BaseEvent {
   description: string;
   images: string[];
   featuredPhoto?: string;
-  pricing: number;
+  basePrice: number;
   cojoinPresence?: boolean;
   cojoinPrice?: number;
   childPresence?: boolean;

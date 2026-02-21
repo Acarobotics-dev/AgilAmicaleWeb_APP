@@ -1,4 +1,4 @@
-const CLIENT_URL = process.env.CLIENT_URI || "http://localhost:5173";
+const CLIENT_URL = process.env.CLIENT_URI_1 || process.env.CLIENT_URI_2;
 
 const wrapHtml = (title, bodyHtml) => {
   return `<!doctype html>

@@ -142,9 +142,9 @@ export function EventSection() {
       }
     },
     {
-      accessorKey: "pricing",
+      accessorKey: "basePrice",
       header: "Prix Base",
-      cell: ({ row }) => <span>{row.original.pricing || 0} DT</span>
+      cell: ({ row }) => <span>{row.original.basePrice || 0} DT</span>
     },
     {
       id: "actions",
@@ -259,7 +259,7 @@ export function EventSection() {
                   <div>
                     <span className="font-medium text-gray-500">Prix</span>
                     <p>
-                      Base: {selectedEvent.pricing} DT<br />
+                      Base: {selectedEvent.basePrice || 0} DT<br />
                       Conjoint: {selectedEvent.cojoinPrice || "-"} DT<br />
                       Enfant: {selectedEvent.childPrice || "-"} DT
                     </p>

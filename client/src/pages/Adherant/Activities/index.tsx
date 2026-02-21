@@ -43,9 +43,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+
 } from "@/components/ui/dialog";
 import Footer from "@/components/footer";
 import NavbarSection from "@/components/navbar/navbar";

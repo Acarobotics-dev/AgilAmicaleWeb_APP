@@ -165,7 +165,7 @@ export default function HouseDetails() {
           <div className="lg:col-span-2 space-y-6">
             {/* Image Gallery */}
             <GallerySection
-              images={house.images.map(img => img.url)}
+              images={house.images}
               title={house.title}
               expandedImg={expandedImg}
               setExpandedImg={setExpandedImg}
