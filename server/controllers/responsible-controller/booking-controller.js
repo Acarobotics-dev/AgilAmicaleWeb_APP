@@ -296,8 +296,8 @@ const createBooking = async (req, res, next) => {
       // Prepare email content
       let bookingDetails = `Type: ${bookingPopulated.activityCategory}\n`;
       if (bookingPopulated.activityCategory === "Sejour Maison" && bookingPopulated.bookingPeriod) {
-        const start = new Date(bookingPopulated.bookingPeriod.start).toLocaleDateString("fr-FR");
-        const end = new Date(bookingPopulated.bookingPeriod.end).toLocaleDateString("fr-FR");
+        const start = new Date(bookingPopulated.bookingPeriod.start).toLocaleDateString("fr-FR", { timeZone: "UTC" });
+        const end = new Date(bookingPopulated.bookingPeriod.end).toLocaleDateString("fr-FR", { timeZone: "UTC" });
         bookingDetails += `Période: du ${start} au ${end}\n`;
       }
       // If this is an Event booking, include the event's start/end if available
@@ -510,10 +510,10 @@ const updateStatusBooking = async (req, res, next) => {
        }
 
       const bookingStart = booking.bookingPeriod?.start
-        ? new Date(booking.bookingPeriod.start).toLocaleDateString("fr-FR")
+        ? new Date(booking.bookingPeriod.start).toLocaleDateString("fr-FR", { timeZone: "UTC" })
         : "";
       const bookingEnd = booking.bookingPeriod?.end
-        ? new Date(booking.bookingPeriod.end).toLocaleDateString("fr-FR")
+        ? new Date(booking.bookingPeriod.end).toLocaleDateString("fr-FR", { timeZone: "UTC" })
         : "";
 
       let activityName = "votre réservation";
