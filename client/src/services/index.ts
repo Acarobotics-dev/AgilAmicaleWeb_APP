@@ -340,6 +340,14 @@ export async function UpdateBookingStatusService(
   return data;
 }
 
+export async function UserUpdateBookingService(
+  bookingId: string,
+  payload: { bookingPeriod?: { start: string; end: string }; participants?: Array<{ firstName: string; lastName: string; age: number; type?: string }> }
+) {
+  const { data } = await axiosInstance.put(`/responsible/booking/userEdit/${bookingId}`, payload);
+  return data;
+}
+
 ///------------------CONTACT FORM-----------------------------
 
 export async function ContactService(formData) {

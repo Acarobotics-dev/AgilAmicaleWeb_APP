@@ -58,6 +58,8 @@ export default function EvenementsList() {
   ) as EventType[];
 
   const filteredEvents = events.filter((event) => {
+    if (!event.isActive) return false;
+
     const matchesSearch =
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ((event as any).destination || "")

@@ -2,17 +2,25 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card,  } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowLeft, Loader2, Calendar, Clock, DollarSign, List } from "lucide-react";
+import { Search, ArrowLeft, Loader2, Calendar, Clock, DollarSign, List, Pencil, Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import NavbarSection from "@/components/navbar/navbar";
-import { getUserBooking } from "@/services";
+import { getUserBooking, getHouseByIdService, UserUpdateBookingService } from "@/services";
 import Footer from "@/components/footer";
 import { useAuth } from "@/context/auth-context";
 import { DataTable } from "@/components/common/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { createTextColumn, createBadgeColumn, createDateColumn } from "@/components/common/table-columns";
+import { toast } from "react-toastify";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface BookingRow {
   id: string;
@@ -25,6 +33,20 @@ interface BookingRow {
   status?: string;
   createdAt?: string;
   participantsCount?: number;
+  // raw fields needed for editing
+  activityId: string;
+  activityModel: string;
+  rawParticipants: Array<{ firstName: string; lastName: string; age: number; type?: string }>;
+  rawPeriod: { start: string; end: string } | null;
+  eventCojoinPresence: boolean;
+  eventChildPresence: boolean;
+}
+
+interface Participant {
+  firstName: string;
+  lastName: string;
+  age: number | string;
+  type: "cojoint" | "child";
 }
 
 const statusVariants = {
@@ -40,6 +62,19 @@ export const MyBookings: React.FC = () => {
   const { auth } = useAuth();
   const navigate = useNavigate();
   const userId = auth?.user?._id;
+
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<BookingRow | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // House edit state
+  const [houseData, setHouseData] = useState<any>(null);
+  const [houseLoading, setHouseLoading] = useState(false);
+  const [selectedPeriodIndex, setSelectedPeriodIndex] = useState<number | null>(null);
+
+  // Event edit state
+  const [participants, setParticipants] = useState<Participant[]>([]);
 
   const { data: bookingsData = { data: [] }, isLoading, error, refetch } = useQuery({
     queryKey: ["userBookings", userId],
@@ -95,6 +130,12 @@ export const MyBookings: React.FC = () => {
         status: b.status || "en attente",
         createdAt: b.createdAt,
         participantsCount,
+        activityId: activity._id || b.activity,
+        activityModel: b.activityModel || (isStay ? "House" : "Event"),
+        rawParticipants: b.participants || [],
+        rawPeriod: b.bookingPeriod ? { start: b.bookingPeriod.start, end: b.bookingPeriod.end } : null,
+        eventCojoinPresence: activity.cojoinPresence ?? false,
+        eventChildPresence: activity.childPresence ?? false,
       };
     });
   }, [bookingsData]);
@@ -105,6 +146,119 @@ export const MyBookings: React.FC = () => {
       (r.category || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [rows, searchTerm]);
+
+  // Open edit dialog
+  const openEdit = async (row: BookingRow) => {
+    setEditingRow(row);
+    setEditOpen(true);
+
+    if (row.activityModel === "House") {
+      setHouseLoading(true);
+      setHouseData(null);
+      setSelectedPeriodIndex(null);
+      try {
+        const res = await getHouseByIdService(row.activityId);
+        const house = res.data;
+        setHouseData(house);
+        // Pre-select the current period
+        if (row.rawPeriod && house?.price) {
+          const idx = house.price.findIndex((p: any) => {
+            const pStart = new Date(p.week.startdate).toISOString().split("T")[0];
+            const bStart = new Date(row.rawPeriod!.start).toISOString().split("T")[0];
+            return pStart === bStart;
+          });
+          setSelectedPeriodIndex(idx >= 0 ? idx : null);
+        }
+      } catch {
+        toast.error("Impossible de charger les données de la maison.");
+      } finally {
+        setHouseLoading(false);
+      }
+    } else {
+      // Pre-fill participants
+      setParticipants(
+        (row.rawParticipants || []).map((p) => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          age: p.age,
+          type: (p.type as "cojoint" | "child") || "cojoint",
+        }))
+      );
+    }
+  };
+
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditingRow(null);
+    setHouseData(null);
+    setSelectedPeriodIndex(null);
+    setParticipants([]);
+  };
+
+  const handleSave = async () => {
+    if (!editingRow) return;
+    setSaving(true);
+    try {
+      if (editingRow.activityModel === "House") {
+        if (selectedPeriodIndex === null || !houseData) {
+          toast.error("Veuillez sélectionner une période.");
+          return;
+        }
+        const period = houseData.price[selectedPeriodIndex];
+        await UserUpdateBookingService(editingRow.id, {
+          bookingPeriod: {
+            start: new Date(period.week.startdate).toISOString(),
+            end: new Date(period.week.endDate).toISOString(),
+          },
+        });
+      } else {
+        const parsed = participants.map((p) => ({
+          ...p,
+          age: Number(p.age),
+        }));
+        await UserUpdateBookingService(editingRow.id, { participants: parsed });
+      }
+      toast.success("Réservation mise à jour avec succès.");
+      refetch();
+      closeEdit();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Une erreur est survenue.";
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Participant helpers
+  const addParticipant = (type: "cojoint" | "child") => {
+    setParticipants((prev) => [...prev, { firstName: "", lastName: "", age: "", type }]);
+  };
+  const removeParticipant = (idx: number) => {
+    setParticipants((prev) => prev.filter((_, i) => i !== idx));
+  };
+  const updateParticipant = (idx: number, field: keyof Participant, value: string) => {
+    setParticipants((prev) => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
+  };
+
+  const isPeriodUnavailable = (period: any, unavailableDates: string[], currentPeriod?: { start: string; end: string } | null) => {
+    if (!unavailableDates || unavailableDates.length === 0) return false;
+    const pStart = new Date(period.week.startdate).toISOString().split("T")[0];
+    // If this period matches the user's current booking period, always treat as available
+    if (currentPeriod) {
+      const bStart = new Date(currentPeriod.start).toISOString().split("T")[0];
+      if (pStart === bStart) return false;
+    }
+    const start = new Date(period.week.startdate);
+    const end = new Date(period.week.endDate);
+    const dates: string[] = [];
+    const cur = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
+    const endUTC = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()));
+    while (cur <= endUTC) {
+      dates.push(cur.toISOString().split("T")[0]);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return dates.some((d) => unavailableDates.includes(d));
+  };
 
   const columns: ColumnDef<BookingRow>[] = useMemo(() => [
     {
@@ -130,6 +284,24 @@ export const MyBookings: React.FC = () => {
       accessorKey: "priceText",
       header: "Prix",
       cell: ({ row }) => <span className="font-semibold text-gray-700">{row.original.priceText}</span>
+    },
+    {
+      id: "actions",
+      header: "",
+      cell: ({ row }) => {
+        if (row.original.status !== "en attente") return null;
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5"
+            onClick={() => openEdit(row.original)}
+            title="Modifier la réservation"
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+        );
+      },
     },
   ], []);
 
@@ -239,9 +411,22 @@ export const MyBookings: React.FC = () => {
                     <h3 className="font-semibold text-gray-900">{row.title}</h3>
                     <p className="text-xs text-blue-600 font-medium bg-blue-50 inline-block px-2 py-0.5 rounded-full mt-1">{row.category}</p>
                   </div>
-                  <Badge className={`${(statusVariants as any)[row.status as keyof typeof statusVariants]?.className || statusVariants.default.className} border-0 shadow-none`}>
-                    {(statusVariants as any)[row.status as keyof typeof statusVariants]?.label || row.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${(statusVariants as any)[row.status as keyof typeof statusVariants]?.className || statusVariants.default.className} border-0 shadow-none`}>
+                      {(statusVariants as any)[row.status as keyof typeof statusVariants]?.label || row.status}
+                    </Badge>
+                    {row.status === "en attente" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 h-auto"
+                        onClick={() => openEdit(row)}
+                        title="Modifier"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm py-2 border-t border-b border-gray-50 my-2">
@@ -277,6 +462,190 @@ export const MyBookings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={(open) => { if (!open) closeEdit(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la réservation</DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">{editingRow?.title}</p>
+          </DialogHeader>
+
+          {editingRow?.activityModel === "House" ? (
+            <div className="space-y-3 py-2">
+              <p className="text-sm font-medium text-gray-700">Sélectionnez une nouvelle période :</p>
+              {houseLoading ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
+              ) : houseData?.price?.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {houseData.price.map((p: any, idx: number) => {
+                    const unavailable = isPeriodUnavailable(p, houseData.unavailableDates || [], editingRow?.rawPeriod);
+                    const start = new Date(p.week.startdate).toLocaleDateString("fr-FR");
+                    const end = new Date(p.week.endDate).toLocaleDateString("fr-FR");
+                    return (
+                      <label
+                        key={idx}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          unavailable
+                            ? "opacity-50 cursor-not-allowed bg-gray-50 border-gray-200"
+                            : selectedPeriodIndex === idx
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-blue-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="period"
+                          disabled={unavailable}
+                          checked={selectedPeriodIndex === idx}
+                          onChange={() => setSelectedPeriodIndex(idx)}
+                          className="accent-blue-600"
+                        />
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-gray-800">{start} → {end}</span>
+                          <span className="ml-2 text-xs text-emerald-600 font-semibold">{p.price} TND</span>
+                          {unavailable && <span className="ml-2 text-xs text-red-500">Indisponible</span>}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">Aucune période disponible.</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              {/* Companions */}
+              {(editingRow?.eventCojoinPresence || participants.some(p => p.type === "cojoint")) && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-700">Accompagnants</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-600 text-xs h-auto py-1"
+                      onClick={() => addParticipant("cojoint")}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Ajouter
+                    </Button>
+                  </div>
+                  {participants.filter(p => p.type === "cojoint").length === 0 && (
+                    <p className="text-xs text-gray-400">Aucun accompagnant ajouté.</p>
+                  )}
+                  {participants.map((p, idx) => p.type !== "cojoint" ? null : (
+                    <div key={idx} className="grid grid-cols-3 gap-2 items-center">
+                      <Input
+                        placeholder="Prénom"
+                        value={p.firstName}
+                        onChange={(e) => updateParticipant(idx, "firstName", e.target.value)}
+                        className="text-sm h-9"
+                      />
+                      <Input
+                        placeholder="Nom"
+                        value={p.lastName}
+                        onChange={(e) => updateParticipant(idx, "lastName", e.target.value)}
+                        className="text-sm h-9"
+                      />
+                      <div className="flex gap-1 items-center">
+                        <Input
+                          placeholder="Âge"
+                          type="number"
+                          min={0}
+                          value={p.age}
+                          onChange={(e) => updateParticipant(idx, "age", e.target.value)}
+                          className="text-sm h-9"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 p-1.5 h-9 w-9"
+                          onClick={() => removeParticipant(idx)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Children */}
+              {(editingRow?.eventChildPresence || participants.some(p => p.type === "child")) && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-700">Enfants</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-600 text-xs h-auto py-1"
+                      onClick={() => addParticipant("child")}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Ajouter
+                    </Button>
+                  </div>
+                  {participants.filter(p => p.type === "child").length === 0 && (
+                    <p className="text-xs text-gray-400">Aucun enfant ajouté.</p>
+                  )}
+                  {participants.map((p, idx) => p.type !== "child" ? null : (
+                    <div key={idx} className="grid grid-cols-3 gap-2 items-center">
+                      <Input
+                        placeholder="Prénom"
+                        value={p.firstName}
+                        onChange={(e) => updateParticipant(idx, "firstName", e.target.value)}
+                        className="text-sm h-9"
+                      />
+                      <Input
+                        placeholder="Nom"
+                        value={p.lastName}
+                        onChange={(e) => updateParticipant(idx, "lastName", e.target.value)}
+                        className="text-sm h-9"
+                      />
+                      <div className="flex gap-1 items-center">
+                        <Input
+                          placeholder="Âge"
+                          type="number"
+                          min={0}
+                          value={p.age}
+                          onChange={(e) => updateParticipant(idx, "age", e.target.value)}
+                          className="text-sm h-9"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 p-1.5 h-9 w-9"
+                          onClick={() => removeParticipant(idx)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!editingRow?.eventCojoinPresence && !editingRow?.eventChildPresence && participants.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">
+                  Cet événement ne permet pas l'ajout de participants supplémentaires.
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeEdit} disabled={saving}>Annuler</Button>
+            <Button onClick={handleSave} disabled={saving || houseLoading}>
+              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Enregistrement...</> : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </>

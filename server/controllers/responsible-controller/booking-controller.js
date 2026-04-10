@@ -18,9 +18,9 @@ const ERROR_MESSAGES = {
 const getDatesInRange = (startDate, endDate) => {
   const dates = [];
 
-  // Normalize start and end dates to UTC midnight
-  let currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
-  const end = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()));
+  // Normalize start and end dates to UTC midnight (use UTC methods to avoid local timezone shift)
+  let currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
+  const end = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
 
   while (currentDate <= end) {
     // Push ISO date string (YYYY-MM-DD) to match House.unavailableDates schema
@@ -659,10 +659,79 @@ const deleteBooking = async (req, res, next) => {
   }
 };
 
+const userUpdateBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Réservation non trouvée." });
+    }
+
+    // Ownership check
+    if (booking.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Accès refusé. Vous ne pouvez modifier que vos propres réservations." });
+    }
+
+    // Status guard — only "en attente" can be edited
+    if (booking.status !== "en attente") {
+      return res.status(403).json({ success: false, message: "Cette réservation ne peut plus être modifiée car elle a déjà été traitée." });
+    }
+
+    if (booking.activityModel === "House") {
+      let period = req.body.bookingPeriod;
+      if (typeof period === "string") {
+        try { period = JSON.parse(period); } catch {
+          return res.status(400).json({ success: false, message: ERROR_MESSAGES.INVALID_PERIOD, errorType: "invalid_period" });
+        }
+      }
+      if (!period?.start || !period?.end || new Date(period.start) >= new Date(period.end)) {
+        return res.status(400).json({ success: false, message: "La période doit avoir une date de début et de fin valides.", errorType: "invalid_dates" });
+      }
+
+      // Overlap check (exclude current booking)
+      const overlapping = await Booking.findOne({
+        _id: { $ne: id },
+        userId: booking.userId,
+        activity: booking.activity,
+        "bookingPeriod.start": { $lte: period.end },
+        "bookingPeriod.end": { $gte: period.start },
+      });
+      if (overlapping) {
+        return res.status(409).json({ success: false, message: ERROR_MESSAGES.OVERLAPPING_BOOKING, errorType: "overlapping_booking" });
+      }
+
+      // House unavailability check
+      const house = await House.findById(booking.activity);
+      if (house && house.unavailableDates && house.unavailableDates.length > 0) {
+        const requestedDates = getDatesInRange(new Date(period.start), new Date(period.end));
+        const isUnavailable = requestedDates.some(date => house.unavailableDates.includes(date));
+        if (isUnavailable) {
+          return res.status(400).json({ success: false, message: "Cette maison n'est pas disponible pour les dates sélectionnées.", errorType: "house_unavailable" });
+        }
+      }
+
+      booking.bookingPeriod = { start: new Date(period.start), end: new Date(period.end) };
+
+    } else {
+      // Event booking — update participants only
+      if (req.body.participants !== undefined) {
+        booking.participants = req.body.participants;
+      }
+    }
+
+    await booking.save();
+    res.status(200).json({ success: true, message: "Réservation mise à jour avec succès.", data: booking });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
   updateBooking,
+  userUpdateBooking,
   deleteBooking,
   updateStatusBooking,
 };
