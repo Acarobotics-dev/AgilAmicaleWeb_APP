@@ -94,7 +94,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <div className="w-5 h-5 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                <span>71707222</span>
+                <span>70284500</span>
               </div>
               <div className="flex items-center space-x-3 text-gray-300">
                 <div className="w-5 h-5 bg-yellow-500 rounded-full flex-shrink-0"></div>

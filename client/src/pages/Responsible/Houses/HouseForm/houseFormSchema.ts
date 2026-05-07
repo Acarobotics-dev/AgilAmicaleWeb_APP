@@ -14,6 +14,7 @@ export const houseFormSchema = z.object({
     invalid_type_error: "Doit être un nombre",
   }).positive("Le nombre de salles de bain doit être positif"),
  
+  isActive: z.boolean().default(true),
   unavailableDates: z.array(z.date()).optional(),
  images: z.array(z.string()).optional(),
   amenities: z.string().refine(

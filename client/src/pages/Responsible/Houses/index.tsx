@@ -56,6 +56,7 @@ export function HouseSection() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
   const [availabilityFilter, setAvailabilityFilter] = useState("all")
+  const [activeFilter, setActiveFilter] = useState("all")
   const [locationFilter, setLocationFilter] = useState("all")
 
   // States
@@ -114,6 +115,10 @@ export function HouseSection() {
       const isAvail = availabilityFilter === "available"
       filtered = filtered.filter((h: House) => h.isAvailable === isAvail)
     }
+    if (activeFilter !== "all") {
+      const isActive = activeFilter === "active"
+      filtered = filtered.filter((h: House) => h.isActive === isActive)
+    }
     if (locationFilter !== "all") {
       filtered = filtered.filter((h: House) => h.location === locationFilter)
     }
@@ -139,10 +144,19 @@ export function HouseSection() {
     },
     {
       accessorKey: "availability",
-      header: "Statut",
+      header: "Disponibilité",
       cell: ({ row }) => (
         <Badge variant={row.original.isAvailable ? "outline" : "secondary"} className={`font-normal ${row.original.isAvailable ? "text-green-600 border-green-200 bg-green-50" : "text-gray-500"}`}>
           {row.original.isAvailable ? "Disponible" : "Indisponible"}
+        </Badge>
+      )
+    },
+    {
+      accessorKey: "isActive",
+      header: "Annonce",
+      cell: ({ row }) => (
+        <Badge variant={row.original.isActive ? "outline" : "secondary"} className={`font-normal ${row.original.isActive ? "text-blue-600 border-blue-200 bg-blue-50" : "text-gray-500"}`}>
+          {row.original.isActive ? "Active" : "Inactive"}
         </Badge>
       )
     },
@@ -206,6 +220,16 @@ export function HouseSection() {
                 />
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
+                <Select value={activeFilter} onValueChange={setActiveFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Annonce" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Dispo." />

@@ -14,7 +14,8 @@ import {
   Eye,
   CheckCircle,
   Calendar as CalendarIcon,
-  Filter
+  Filter,
+  ArrowUpDown,
 } from "lucide-react"
 
 import {
@@ -81,6 +82,7 @@ const getStatusBadge = (status: string = "") => {
 export function BookingsSection() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [sortOrder, setSortOrder] = useState<"oldest" | "newest">("oldest")
   const [dateRange, setDateRange] = useState<{ from?: Date | undefined; to?: Date | undefined } | undefined>(undefined)
 
   // State for Dialogs
@@ -172,8 +174,12 @@ export function BookingsSection() {
       }
 
       return true
+    }).sort((a: Booking, b: Booking) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return sortOrder === "oldest" ? dateA - dateB : dateB - dateA
     })
-  }, [bookingsData.data, searchTerm, statusFilter, usersMap, activitiesMap, dateRange])
+  }, [bookingsData.data, searchTerm, statusFilter, sortOrder, usersMap, activitiesMap, dateRange])
 
   // Export filtered bookings to Excel
   const handleExport = async () => {
@@ -314,6 +320,19 @@ export function BookingsSection() {
       )
     },
     {
+      id: "createdAt",
+      header: "Réservé le",
+      cell: ({ row }) => {
+        const date = row.original.createdAt
+        if (!date) return <span className="text-gray-400">-</span>
+        return (
+          <span className="text-sm text-gray-600">
+            {format(new Date(date), "d MMM yyyy, HH:mm", { locale: fr })}
+          </span>
+        )
+      }
+    },
+    {
       id: "actions",
       cell: ({ row }) => {
         const booking = row.original
@@ -419,6 +438,17 @@ export function BookingsSection() {
                         <SelectItem value="confirmé">Confirmé</SelectItem>
                         <SelectItem value="annulé">Annulé</SelectItem>
                         <SelectItem value="terminé">Terminé</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "oldest" | "newest")}>
+                      <SelectTrigger className="w-[170px]">
+                        <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-gray-500" />
+                        <SelectValue placeholder="Priorité" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="oldest">Priorité : plus anciens</SelectItem>
+                        <SelectItem value="newest">Priorité : plus récents</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

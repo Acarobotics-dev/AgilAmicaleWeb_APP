@@ -93,7 +93,10 @@ const addNewHouse = async (req, res, next) => {
     const savedHouse = await newHouse.save();
     console.log('✅ [Houses] House created successfully, ID:', savedHouse._id);
 
-    // Send email notifications to approved users (fire-and-forget)
+    // Send email notifications only when house is published (isActive)
+    if (savedHouse.isActive === false) {
+      console.log('📭 [Houses] House is inactive — skipping email notifications');
+    } else {
     console.log('✉️ [Houses] Queuing email notifications...');
     setImmediate(async () => {
       try {
@@ -142,6 +145,7 @@ const addNewHouse = async (req, res, next) => {
         console.error('❌ [Houses] Email notification failed:', emailErr.message, emailErr.stack);
       }
     });
+    } // end isActive email gate
 
     return res.status(201).json({
       success: true,
@@ -164,7 +168,8 @@ const addNewHouse = async (req, res, next) => {
 
 const getAllHouses = async (req, res, next) => {
   try {
-    const housesList = await House.find().sort({ createdAt: -1 });
+    const filter = req.query.admin === "true" ? {} : { isActive: true };
+    const housesList = await House.find(filter).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,

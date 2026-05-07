@@ -20,6 +20,7 @@ const HouseSchema = new mongoose.Schema({
   amenities: { type: [String], default: [] },
   images: { type: [String], default: [] },
   isAvailable: { type: Boolean, required: true, default: true },
+  isActive: { type: Boolean, required: true, default: true },
 
   // availablePeriod is derived from price array, so not strictly required
   availablePeriod: { type: [Date], default: [] },

@@ -98,8 +98,7 @@ export async function updatePasswordService(
 
 // -------------------- House Services --------------------
 export async function getAllHousesService() {
-  const { data } = await axiosInstance.get(`/responsible/house/getAll`);
-
+  const { data } = await axiosInstance.get(`/responsible/house/getAll?admin=true`);
   return data;
 }
 export async function UpdateHouseService(houseId, formdata) {

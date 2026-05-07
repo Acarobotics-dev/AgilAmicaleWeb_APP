@@ -10,6 +10,7 @@ export type House = {
   amenities: string[];
   images: string[];
   isAvailable: boolean;
+  isActive: boolean;
   postedAt: string;
 
 };

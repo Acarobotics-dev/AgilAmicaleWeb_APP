@@ -49,6 +49,7 @@ import {
 } from "lucide-react"
 import { toast } from "react-toastify"; // Switched to react-toastify
 import ImageUploader from "@/components/common/ImagesUploader"
+import { Switch } from "@/components/ui/switch"
 import { houseFormSchema } from "./houseFormSchema"
 
 type HouseFormValues = z.infer<typeof houseFormSchema>
@@ -85,6 +86,7 @@ interface AddEditHouseFormProps {
     numberOfBathrooms: number
     amenities: string[]
     images: string[]
+    isActive?: boolean
   }
 }
 
@@ -115,6 +117,7 @@ export function AddEditHouseForm({ onSubmit, initialData }: AddEditHouseFormProp
       numberOfRooms: initialData?.numberOfRooms || 0,
       numberOfBathrooms: initialData?.numberOfBathrooms || 0,
       amenities: initialData?.amenities.join(",") || "",
+      isActive: initialData?.isActive ?? true,
       // Note: Schema likely expects string for amenities if it was .join(",") in previous code,
       // but ideally we should change schema to array.
       // For now, let's stick to the previous pattern of comma-separated string if that's what the schema validation expects.
@@ -185,6 +188,7 @@ export function AddEditHouseForm({ onSubmit, initialData }: AddEditHouseFormProp
       }
 
       if (initialData?._id) formData.append("_id", initialData._id)
+      formData.append("isActive", String(values.isActive ?? true))
 
       await onSubmit(formData)
     } catch (e) {
@@ -426,6 +430,29 @@ export function AddEditHouseForm({ onSubmit, initialData }: AddEditHouseFormProp
             <ImageUploader
               initialImages={initialData?.images || []}
               onChange={handleImagesChange}
+            />
+          </div>
+
+          {/* Section 5: Publication */}
+          <div className="space-y-6">
+            <h3 className="text-lg font-medium text-gray-900">Publication</h3>
+            <Separator />
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <FormLabel>Activer l'annonce</FormLabel>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Rendre cette maison visible pour les membres
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
             />
           </div>
 
