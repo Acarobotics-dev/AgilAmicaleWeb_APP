@@ -101,6 +101,11 @@ export async function getAllHousesService() {
   const { data } = await axiosInstance.get(`/responsible/house/getAll?admin=true`);
   return data;
 }
+
+export async function getPublicHousesService() {
+  const { data } = await axiosInstance.get(`/responsible/house/getAll`);
+  return data;
+}
 export async function UpdateHouseService(houseId, formdata) {
   console.log("updated House" ,formdata);
   const { data } = await axiosInstance.put(

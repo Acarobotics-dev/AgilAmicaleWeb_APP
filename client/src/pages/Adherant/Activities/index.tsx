@@ -48,7 +48,7 @@ import {
 import Footer from "@/components/footer";
 import NavbarSection from "@/components/navbar/navbar";
 import { useQuery } from "@tanstack/react-query";
-import { getAllHousesService } from "@/services";
+import { getPublicHousesService } from "@/services";
 import { PaginationComponent } from "@/components/common/paginationComponent";
 import { useNavigate } from "react-router-dom";
 import { House } from "./types";
@@ -501,8 +501,8 @@ export default function ActivityList() {
   const navigate = useNavigate();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["houses"],
-    queryFn: getAllHousesService,
+    queryKey: ["publicHouses"],
+    queryFn: getPublicHousesService,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 

@@ -168,7 +168,7 @@ const addNewHouse = async (req, res, next) => {
 
 const getAllHouses = async (req, res, next) => {
   try {
-    const filter = req.query.admin === "true" ? {} : { isActive: true };
+    const filter = req.query.admin === "true" ? {} : { isActive: { $ne: false } };
     const housesList = await House.find(filter).sort({ createdAt: -1 });
 
     return res.status(200).json({
