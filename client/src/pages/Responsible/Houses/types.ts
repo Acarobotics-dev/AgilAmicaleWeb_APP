@@ -11,6 +11,7 @@ export type House = {
   images: string[];
   isAvailable: boolean;
   isActive: boolean;
+  unavailableDates?: string[];
   postedAt: string;
 
 };

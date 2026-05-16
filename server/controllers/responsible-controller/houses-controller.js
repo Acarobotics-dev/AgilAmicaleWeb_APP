@@ -468,10 +468,32 @@ const DeleteHouseById = async (req, res, next) => {
   }
 };
 
+const clearUnavailableDates = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const house = await House.findByIdAndUpdate(
+      id,
+      { $set: { unavailableDates: [] } },
+      { new: true }
+    );
+    if (!house) {
+      return res.status(404).json({ success: false, message: "House not found." });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Unavailable dates cleared successfully.",
+      data: house,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   addNewHouse,
   getAllHouses,
   getHouseDetailsByID,
   updateHouseByID,
   DeleteHouseById,
+  clearUnavailableDates,
 };

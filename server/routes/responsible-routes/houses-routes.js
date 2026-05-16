@@ -4,7 +4,8 @@ const {
   getAllHouses,
   updateHouseByID,
   getHouseDetailsByID,
-  DeleteHouseById
+  DeleteHouseById,
+  clearUnavailableDates,
 } = require("../../controllers/responsible-controller/houses-controller");
 const router = express.Router();
 const uploadMultipleImages = require("../../middleware/uploadMultipleImagesMiddleware");
@@ -19,5 +20,6 @@ router.get("/get/details/:id", getHouseDetailsByID);
 router.post("/add", authenticate, authorizeResponsible, uploadMultipleImages, addNewHouse);
 router.put("/update/:id", authenticate, authorizeResponsible, uploadMultipleImages, updateHouseByID);
 router.delete("/delete/:id", authenticate, authorizeResponsible, DeleteHouseById);
+router.put("/clear-unavailable/:id", authenticate, authorizeResponsible, clearUnavailableDates);
 
 module.exports = router;

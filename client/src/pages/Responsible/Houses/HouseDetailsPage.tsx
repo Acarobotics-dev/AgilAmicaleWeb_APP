@@ -407,6 +407,29 @@ export const HouseDetailsPage = () => {
                     </section>
                   )}
 
+                  {/* Unavailable Dates Section */}
+                  <section className="bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl p-6 border border-red-200">
+                    <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                      <div className="p-2 bg-red-500 rounded-lg">
+                        <CalendarX2 className="w-5 h-5 text-white" />
+                      </div>
+                      Dates indisponibles ({house.unavailableDates?.length ?? 0})
+                    </h3>
+                    <div className="bg-white rounded-xl p-4 border border-red-200">
+                      {house.unavailableDates && house.unavailableDates.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {house.unavailableDates.map((date, i) => (
+                            <span key={i} className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 text-sm rounded-full font-medium">
+                              {date}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm text-center py-4">Aucune date indisponible</p>
+                      )}
+                    </div>
+                  </section>
+
                   {/* Description Section */}
                   <section className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-200">
                     <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">

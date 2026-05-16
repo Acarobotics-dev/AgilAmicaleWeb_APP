@@ -134,6 +134,11 @@ export async function DeleteHouseService(houseId) {
   return data;
 }
 
+export async function clearHouseUnavailableDatesService(houseId: string) {
+  const { data } = await axiosInstance.put(`/responsible/house/clear-unavailable/${houseId}`);
+  return data;
+}
+
 // -------------------- Convention Services --------------------
 export async function getAllConventions() {
   const { data } = await axiosInstance.get(`/responsible/convention/getAll`);
