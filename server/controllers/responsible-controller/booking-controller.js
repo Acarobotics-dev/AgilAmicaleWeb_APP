@@ -140,7 +140,7 @@ const createBooking = async (req, res, next) => {
         }
 
         // Only check against currently active unavailable dates
-        const requestedDates = getDatesInRange(new Date(period.start), new Date(period.end));
+        const requestedDates = getDatesInRangeExclEnd(new Date(period.start), new Date(period.end));
         const isUnavailable = requestedDates.some(date => activeDates.includes(date));
 
         if (isUnavailable) {
@@ -737,7 +737,7 @@ const userUpdateBooking = async (req, res, next) => {
           House.findByIdAndUpdate(booking.activity, { $set: { unavailableDates: activeDates } })
             .catch(err => console.error("Failed to purge expired unavailable dates:", err));
         }
-        const requestedDates = getDatesInRange(new Date(period.start), new Date(period.end));
+        const requestedDates = getDatesInRangeExclEnd(new Date(period.start), new Date(period.end));
         const isUnavailable = requestedDates.some(date => activeDates.includes(date));
         if (isUnavailable) {
           return res.status(400).json({ success: false, message: "Cette maison n'est pas disponible pour les dates sélectionnées.", errorType: "house_unavailable" });
