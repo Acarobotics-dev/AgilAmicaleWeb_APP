@@ -35,7 +35,7 @@ export async function loginService(formData: {
   }
 }
 export async function AddUserService(user) {
-  const { data } = await axiosInstance.post("/auth/addUser", user);
+  const { data } = await axiosInstance.post("/auth/AddUser", user);
   return data;
 }
 export async function getUserByIdService(userId) {
