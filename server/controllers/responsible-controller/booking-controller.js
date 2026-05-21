@@ -497,9 +497,9 @@ const updateStatusBooking = async (req, res, next) => {
       }
     }
 
-    // 1b. Remove unavailable dates when house booking is cancelled or completed
+    // 1b. Remove unavailable dates when house booking leaves the confirmed state
     if (booking.activityCategory === "Sejour Maison" &&
-        (status.toLowerCase() === "annulé" || status.toLowerCase() === "terminé") &&
+        status.toLowerCase() !== "confirmé" &&
         booking.bookingPeriod?.start &&
         booking.bookingPeriod?.end) {
 
